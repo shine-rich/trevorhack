@@ -258,7 +258,7 @@ if st.session_state.openai_apikey:
             for file in source_file_names:
                 source_links.append(base_link.format(file))
             i = 0
-            sources_row = st.columns(3)
+            sources_row = st.columns(len(source_links))
             for col in sources_row:
                 with col.container(height=50):
                     st.markdown(f'<a href="{source_links[i]}" target="_blank">"{source_file_names[i]}"</a>', unsafe_allow_html=True)
