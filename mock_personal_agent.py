@@ -47,7 +47,7 @@ if "api_data_2" not in st.session_state:
 demo_conversation = load_demo_conversation()
 
 # Streamlit app layout
-st.title("Personal AI Chatbot")
+st.title("🤖 Personal Agent")
 st.write("Welcome to your personal mental health companion. How can I help you today?")
 
 # Create two columns for side-by-side layout

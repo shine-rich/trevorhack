@@ -66,7 +66,7 @@ if st.session_state.api_data is None:
     st.session_state.api_data = fetch_anonymized_data(st.session_state.session_id)
 
 # Title and description
-st.title("High School Therapy Chatbot")
+st.title("🤖 Personal Agent")
 st.write("Welcome! Share your thoughts, and I'll respond with supportive advice.")
 
 if st.session_state.api_data:
