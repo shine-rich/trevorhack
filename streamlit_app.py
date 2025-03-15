@@ -372,41 +372,53 @@ if st.session_state.openai_apikey:
             st.write(f"**Risk Level:** {st.session_state.case_form_data['risk_level']}")  # Dynamically display risk level
         except KeyError:
             pass
-        # Display current goals from longitudinal data
+
+        # Input fields for updating the treatment plan
+        st.write("**Update Treatment Plan**")
+
+        # Update Current Goals
         st.write("**Current Goals:**")
-        if st.session_state.longitudinal_data:
-            for entry in st.session_state.longitudinal_data:
-                if "goals" in entry:
-                    st.write(f"- {entry['goals']}")
-        else:
-            st.write("- No goals set yet.")
-
-        # Display prescribed coping strategies from longitudinal data
+        current_goals = st.text_area("Enter or update current goals:", value=st.session_state.longitudinal_data[-1].get("goals") if st.session_state.longitudinal_data else "")
+        
+        # Update Prescribed Coping Strategies
         st.write("**Prescribed Coping Strategies:**")
-        if st.session_state.longitudinal_data:
-            for entry in st.session_state.longitudinal_data:
-                if "coping_strategies" in entry:
-                    st.write(f"- {entry['coping_strategies']}")
-        else:
-            st.write("- No coping strategies prescribed yet.")
-
-        # Display progress tracker from longitudinal data
+        coping_strategies = st.text_area("Enter or update coping strategies:", value=st.session_state.longitudinal_data[-1].get("coping_strategies") if st.session_state.longitudinal_data else "")
+        
+        # Update Progress Tracker
         st.write("**Progress Tracker:**")
-        if st.session_state.longitudinal_data:
-            for entry in st.session_state.longitudinal_data:
-                if "progress" in entry:
-                    st.write(f"- {entry['progress']}")
-        else:
-            st.write("- No progress tracked yet.")
-
-        # Display next steps from longitudinal data
+        progress = st.text_area("Enter or update progress:", value=st.session_state.longitudinal_data[-1].get("progress", "") if st.session_state.longitudinal_data else "")
+        
+        # Update Next Steps
         st.write("**Next Steps:**")
+        next_steps = st.text_area("Enter or update next steps:", value=st.session_state.longitudinal_data[-1].get("next_steps") if st.session_state.longitudinal_data else "")
+
+        # Save button for updating the treatment plan
+        if st.button("Save Treatment Plan"):
+            # Save updated treatment plan data to the longitudinal database
+            updated_data = {
+                "timestamp": time.time(),
+                "goals": current_goals,
+                "coping_strategies": coping_strategies,
+                "progress": progress,
+                "next_steps": next_steps
+            }
+            save_to_longitudinal_database(updated_data)
+            st.success("Treatment plan updated successfully!")
+
+        # Display current treatment plan
+        st.write("**Current Treatment Plan:**")
         if st.session_state.longitudinal_data:
-            for entry in st.session_state.longitudinal_data:
-                if "next_steps" in entry:
-                    st.write(f"- {entry['next_steps']}")
+            latest_data = st.session_state.longitudinal_data[-1]
+            st.write("**Current Goals:**")
+            st.write(f"- {latest_data.get('goals', 'No goals set yet.')}")
+            st.write("**Prescribed Coping Strategies:**")
+            st.write(f"- {latest_data.get('coping_strategies', 'No coping strategies prescribed yet.')}")
+            st.write("**Progress Tracker:**")
+            st.write(f"- {latest_data.get('progress', 'No progress tracked yet.')}")
+            st.write("**Next Steps:**")
+            st.write(f"- {latest_data.get('next_steps', 'No next steps planned yet.')}")
         else:
-            st.write("- No next steps planned yet.")
+            st.write("No treatment plan data available.")
 
     # Student Portal Tab
     with tab4:
@@ -424,11 +436,34 @@ if st.session_state.openai_apikey:
             pass
         st.write("**Current Goals:**")
         if st.session_state.longitudinal_data:
-            for entry in st.session_state.longitudinal_data:
-                if "goals" in entry:
-                    st.write(f"- {entry['goals']}")
+            latest_data = st.session_state.longitudinal_data[-1]
+            st.write(f"- {latest_data.get('goals', 'No goals set yet.')}")
         else:
             st.write("  - No goals set yet.")
+
+        # Display prescribed coping strategies
+        st.write("**Prescribed Coping Strategies:**")
+        if st.session_state.longitudinal_data:
+            latest_data = st.session_state.longitudinal_data[-1]
+            st.write(f"- {latest_data.get('coping_strategies', 'No coping strategies prescribed yet.')}")
+        else:
+            st.write("  - No coping strategies prescribed yet.")
+
+        # Display progress tracker
+        st.write("**Progress Tracker:**")
+        if st.session_state.longitudinal_data:
+            latest_data = st.session_state.longitudinal_data[-1]
+            st.write(f"- {latest_data.get('progress', 'No progress tracked yet.')}")
+        else:
+            st.write("- No progress tracked yet.")
+
+        # Display next steps
+        st.write("**Next Steps:**")
+        if st.session_state.longitudinal_data:
+            latest_data = st.session_state.longitudinal_data[-1]
+            st.write(f"- {latest_data.get('next_steps', 'No next steps planned yet.')}")
+        else:
+            st.write("- No next steps planned yet.")
 
         # Daily Check-In
         st.write("**Daily Check-In:**")
