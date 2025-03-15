@@ -219,7 +219,7 @@ if st.session_state.openai_apikey:
                 with st.chat_message(message["role"]):
                     st.write(message["content"])
             if st.session_state.messages[-1]["role"] != "assistant":
-                time.sleep(2)
+                # time.sleep(2)
                 with st.chat_message("assistant"):
                     if st.session_state.script_idx < len(client_script):
                         response = client_script[st.session_state.script_idx][2:]
@@ -236,7 +236,7 @@ if st.session_state.openai_apikey:
                             chathistory = ""
                             for item in st.session_state.messages:
                                 chathistory += item['content'] + '\n'
-                            time.sleep(1) 
+                            # time.sleep(1) 
                             st.write("Analyzing chat...")
 
                             # Populate Case Form data in session state
@@ -285,7 +285,7 @@ if st.session_state.openai_apikey:
             st.subheader("Companion Suggestions")
             if len(st.session_state.messages) > 1:
                 with st.spinner("Loading..."):
-                    time.sleep(2)
+                    # time.sleep(2)
                     st.write(client_summary())
 
             st.subheader("Suggested Reply")
