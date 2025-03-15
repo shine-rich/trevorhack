@@ -434,36 +434,51 @@ if st.session_state.openai_apikey:
             st.write(f"- Risk Level: {st.session_state.case_form_data['risk_level']}")
         except KeyError:
             pass
+
+        # Display current goals
         st.write("**Current Goals:**")
         if st.session_state.longitudinal_data:
             latest_data = st.session_state.longitudinal_data[-1]
-            st.write(f"- {latest_data.get('goals', 'No goals set yet.')}")
-        else:
-            st.write("  - No goals set yet.")
+            latest_goals = f"- {latest_data.get('goals', 'No goals set yet.')}"
+            st.write(latest_goals)
+            
+            # Make goals actionable
+            if "Practice mindfulness daily".lower() in latest_goals.lower():
+                st.button("Start Guided Mindfulness Session", on_click=lambda: st.write("Redirecting to mindfulness app..."))
+            if "mindfulness" in latest_goals.lower() and "progress" in latest_data:
+                st.write("**Insight:** You've made progress on your mindfulness goal! Keep it up!")
 
         # Display prescribed coping strategies
         st.write("**Prescribed Coping Strategies:**")
         if st.session_state.longitudinal_data:
             latest_data = st.session_state.longitudinal_data[-1]
-            st.write(f"- {latest_data.get('coping_strategies', 'No coping strategies prescribed yet.')}")
-        else:
-            st.write("  - No coping strategies prescribed yet.")
+            latest_strategies = f"- {latest_data.get('coping_strategies', 'No coping strategies prescribed yet.')}"
+            st.write(latest_strategies)
+            
+            # Make coping strategies actionable
+            if "Take a walk".lower() in latest_strategies.lower():
+                st.button("Find Walking Routes", on_click=lambda: st.write("Redirecting to maps..."))
+
+        # Mood-based suggestions
+        if st.session_state.mood == "Stressed":
+            st.write("**Suggested Coping Strategy:** Try deep breathing or journaling.")
+            st.button("Start Deep Breathing Exercise", on_click=lambda: st.write("Redirecting to deep breathing exercise..."))
+        elif st.session_state.mood == "Overwhelmed":
+            st.write("**Suggested Coping Strategy:** Prioritize tasks and take breaks.")
+            st.button("View Time Management Tips", on_click=lambda: st.write("Redirecting to time management tips..."))
 
         # Display progress tracker
         st.write("**Progress Tracker:**")
         if st.session_state.longitudinal_data:
             latest_data = st.session_state.longitudinal_data[-1]
             st.write(f"- {latest_data.get('progress', 'No progress tracked yet.')}")
-        else:
-            st.write("- No progress tracked yet.")
 
         # Display next steps
         st.write("**Next Steps:**")
         if st.session_state.longitudinal_data:
             latest_data = st.session_state.longitudinal_data[-1]
-            st.write(f"- {latest_data.get('next_steps', 'No next steps planned yet.')}")
-        else:
-            st.write("- No next steps planned yet.")
+            latest_next_steps = f"- {latest_data.get('next_steps', 'No next steps planned yet.')}"
+            st.write(latest_next_steps)
 
         # Daily Check-In
         st.write("**Daily Check-In:**")
