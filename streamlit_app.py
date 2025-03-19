@@ -75,7 +75,7 @@ if 'case_form_data' not in st.session_state:
         "next_session_date": ""
     }
 
-st.set_page_config(page_title="TrevorText, powered by LlamaIndex", page_icon="💬", layout="wide")
+st.set_page_config(page_title="Santo Chat, powered by LlamaIndex", page_icon="💬", layout="wide")
 
 if st.session_state.openai_apikey:
     openai.api_key = st.session_state.openai_apikey
@@ -117,7 +117,7 @@ def get_resource_for_response(user_input) -> str:
 # Longitudinal Database Integration
 def save_to_longitudinal_database(data):
     st.session_state.longitudinal_data.append(data)
-    st.sidebar.json(data)
+    # st.sidebar.json(data)
 
 def search_for_therapists(locality: str = "Houston, Texas") -> str:
     pass
@@ -128,8 +128,8 @@ def search_for_therapists(locality: str = "Houston, Texas") -> str:
     # response = agent.chat(f"what are the names of three individual therapists in {locality}?")
     # message = emails.html(
     #     html=f"<p>Hi Riley.<br>{response}</p>",
-    #     subject="Helpful resources from TrevorChat",
-    #     mail_from=('TrevorChat Counselor', 'contact@mychesscamp.com')
+    #     subject="Helpful resources from Santo Chat",
+    #     mail_from=('Santo Chat Counselor', 'contact@mychesscamp.com')
     # )
     # smtp_options = {
     #     "host": "smtp.gmail.com", 
@@ -194,32 +194,29 @@ if st.session_state.openai_apikey:
     resource_tool = FunctionTool.from_defaults(fn=get_resource_for_response)
     index = load_data()
     agent = build_agent()
-
     if "query_engine" not in st.session_state.keys():
         st.session_state.query_engine = index.as_query_engine(similarity_top_k=3, verbose=True)
-
-    st.sidebar.write("Longitudinal Data:")
-    st.sidebar.json(st.session_state.longitudinal_data)
+    # st.sidebar.write("Longitudinal Data:")
+    # st.sidebar.json(st.session_state.longitudinal_data)
     # Define tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["Crisis Hotline Chat", "Case Form", "Treatment Plan Dashboard", "Student Portal"])
-
+    tab1, tab2, tab3 = st.tabs(["Crisis Hotline Chat", "Case Form", "Treatment Plans & Feedback"])
+    
     # Define valid options for Suicidal Ideation
     suicidal_ideation_options = ["No", "Passive", "Active with Plan", "Active without Plan"]
     risk_level_options = ["Not Suicidal", "Low Risk", "Medium Risk", "High Risk", "Imminent Risk"]
 
-    # crisis intervention room tab
+    # Crisis intervention room tab
     with tab1:
         col_a1, col_a2 = st.columns([0.5, 0.5], gap="small")
         with col_a1:
             if "chat_engine" not in st.session_state.keys():
                 st.session_state.chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)
             if "messages" not in st.session_state.keys():
-                st.session_state.messages = [{"role": "user", "content": "Hi, welcome to TrevorText. Can you tell me a little bit about yourself?"}]
+                st.session_state.messages = [{"role": "user", "content": "Hi, welcome to Santo Chat. Can you tell me a little bit about yourself?"}]
             for message in st.session_state.messages:
                 with st.chat_message(message["role"]):
                     st.write(message["content"])
             if st.session_state.messages[-1]["role"] != "assistant":
-                # time.sleep(2)
                 with st.chat_message("assistant"):
                     if st.session_state.script_idx < len(client_script):
                         response = client_script[st.session_state.script_idx][2:]
@@ -228,17 +225,14 @@ if st.session_state.openai_apikey:
                         message = {"role": "assistant", "content": response}
                         st.session_state.messages.append(message)  # Add response to message history
                         st.session_state.should_prompt_agent = True
-                        
                     elif not st.session_state.autopopulation:
                         st.info("Contact has left the chat")
-                        with st.status("Autopopulating form...", expanded=True) as status:
+                        with st.status("Autopopulating form...", expanded=False) as status:
                             st.write("Downloading chat history...")
                             chathistory = ""
                             for item in st.session_state.messages:
                                 chathistory += item['content'] + '\n'
-                            # time.sleep(1) 
                             st.write("Analyzing chat...")
-
                             # Populate Case Form data in session state
                             st.session_state.case_form_data["first_name"] = agent.chat(get_form_value_from_convo(chathistory, "First Name")).response
                             st.session_state.case_form_data["reason_for_contact"] = agent.chat(get_form_value_from_convo(chathistory, "Reason for Contact")).response
@@ -269,7 +263,6 @@ if st.session_state.openai_apikey:
                             st.session_state.case_form_data["previous_mental_health_history"] = agent.chat(get_form_value_from_convo(chathistory, "Previous Mental Health History")).response
                             st.session_state.case_form_data["follow_up_actions"] = agent.chat(get_form_value_from_convo(chathistory, "Follow-Up Actions")).response
                             st.session_state.case_form_data["next_session_date"] = agent.chat(get_form_value_from_convo(chathistory, "Next Session Date")).response
-
                             st.write("Populating form...")
                             st.session_state.autopopulation = True
                             save_to_longitudinal_database({
@@ -280,14 +273,12 @@ if st.session_state.openai_apikey:
                                 "coping_strategies": st.session_state.case_form_data["coping_strategies"],
                                 "progress": "Moderate improvement noted."
                             })
-            
+
         with col_a2:          
-            st.subheader("Companion Suggestions")
+            st.subheader("Case Overview")
             if len(st.session_state.messages) > 1:
                 with st.spinner("Loading..."):
-                    # time.sleep(2)
                     st.write(client_summary())
-
             st.subheader("Suggested Reply")
             suggested_reply = ""
             source_file_names = ['cheatsheet_empathetic_language.txt', 'cheatsheet_maintaining_rapport.txt', 'cheatsheet_risk_assessment.txt']
@@ -303,25 +294,28 @@ if st.session_state.openai_apikey:
                     st.info(suggested_reply)
                     source_file_names = get_counselor_resources(response)
                     st.session_state.should_prompt_agent = False
-
-            # Add a button to populate the custom input field with the suggested reply
             if st.button("Use Suggested Reply", on_click=set_custom_chat_input):
                 pass
             st.subheader("Sources")
-            source_links = []
-            base_link = "https://github.com/zrizvi93/trevorhack/tree/main/data/{}"
-            for file in source_file_names:
-                source_links.append(base_link.format(file))
+            source_links = [
+                "https://www.nimh.nih.gov/health/publications/stress/index.shtml",
+                "https://www.apa.org/topics/resilience",
+                "https://www.mind.org.uk/information-support/types-of-mental-health-problems/"
+            ]
+            source_titles = [
+                "NIMH Coping with Stress",
+                "APA Building Your Resilience",
+                "Mind Coping with Mental Health Problems"
+            ]
             i = 0
             sources_row = st.columns(len(source_links))
             for col in sources_row:
                 with col.container(height=50):
-                    st.markdown(f'<a href="{source_links[i]}" target="_blank">"{source_file_names[i]}"</a>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="{source_links[i]}" target="_blank">"{source_titles[i]}"</a>', unsafe_allow_html=True)
                 i += 1
 
         with col_a1:  
             if not st.session_state.autopopulation:
-                # Send message in Chat
                 with st.form("chat_form"):
                     custom_chat_input = st.text_area("Your reply", key="custom_chat_input")
                     _, right_justified_button_col = st.columns([0.8, 0.15])   # Adjust the ratio as needed
@@ -331,7 +325,6 @@ if st.session_state.openai_apikey:
     # Case Form Tab
     with tab2:
         st.header("Case Form")
-
         col_b1, col_b2 = st.columns([0.5, 0.5], gap="small")
         with col_b1:
             st.session_state.case_form_data["first_name"] = st.text_input("First Name", value=st.session_state.case_form_data["first_name"])
@@ -340,8 +333,6 @@ if st.session_state.openai_apikey:
             st.session_state.case_form_data["location"] = st.text_input("Location (City, State)", value=st.session_state.case_form_data["location"])
             st.session_state.case_form_data["gender_identity"] = st.text_input("Gender Identity", value=st.session_state.case_form_data["gender_identity"])
             st.session_state.case_form_data["preferred_pronouns"] = st.text_input("Preferred Pronouns", value=st.session_state.case_form_data["preferred_pronouns"])
-            
-            # Use the validated value in the selectbox
             st.session_state.case_form_data["suicidal_ideation"] = st.selectbox(
                 "Suicidal Ideation",
                 suicidal_ideation_options,
@@ -364,98 +355,26 @@ if st.session_state.openai_apikey:
             st.session_state.case_form_data["follow_up_actions"] = st.text_area("Follow-Up Actions", value=st.session_state.case_form_data["follow_up_actions"])
             st.session_state.case_form_data["next_session_date"] = st.text_input("Next Session Date", value=st.session_state.case_form_data["next_session_date"])
 
-    # Treatment Plan Dashboard Tab
+    # Treatment Plans & Feedback Tab (Consolidated tab3)
     with tab3:
-        st.header("Treatment Plan Dashboard")
-        try:
-            st.subheader(f"Student: {st.session_state.case_form_data['first_name']}")  # Dynamically display student name
-            st.write(f"**Risk Level:** {st.session_state.case_form_data['risk_level']}")  # Dynamically display risk level
-        except KeyError:
-            pass
-
-        # Input fields for updating the treatment plan
-        st.write("**Update Treatment Plan**")
-
-        # Update Current Goals
-        st.write("**Current Goals:**")
-        current_goals = st.text_area("Enter or update current goals:", value=st.session_state.longitudinal_data[-1].get("goals") if st.session_state.longitudinal_data else "")
+        st.header("Treatment Plans & Feedback")
         
-        # Update Prescribed Coping Strategies
-        st.write("**Prescribed Coping Strategies:**")
-        coping_strategies = st.text_area("Enter or update coping strategies:", value=st.session_state.longitudinal_data[-1].get("coping_strategies") if st.session_state.longitudinal_data else "")
-        
-        # Update Progress Tracker
-        st.write("**Progress Tracker:**")
-        progress = st.text_area("Enter or update progress:", value=st.session_state.longitudinal_data[-1].get("progress", "") if st.session_state.longitudinal_data else "")
-        
-        # Update Next Steps
-        st.write("**Next Steps:**")
-        next_steps = st.text_area("Enter or update next steps:", value=st.session_state.longitudinal_data[-1].get("next_steps") if st.session_state.longitudinal_data else "")
+        # Sort longitudinal_data by timestamp in descending order
+        sorted_data = sorted(st.session_state.longitudinal_data, key=lambda x: x.get("timestamp", 0), reverse=True)
 
-        # Save button for updating the treatment plan
-        if st.button("Save Treatment Plan"):
-            # Save updated treatment plan data to the longitudinal database
-            updated_data = {
-                "timestamp": time.time(),
-                "goals": current_goals,
-                "coping_strategies": coping_strategies,
-                "progress": progress,
-                "next_steps": next_steps
-            }
-            save_to_longitudinal_database(updated_data)
-            st.success("Treatment plan updated successfully!")
-
-        # Display current treatment plan
-        st.write("**Current Treatment Plan:**")
-        if st.session_state.longitudinal_data:
-            latest_data = st.session_state.longitudinal_data[-1]
-            st.write("**Current Goals:**")
-            st.write(f"- {latest_data.get('goals', 'No goals set yet.')}")
-            st.write("**Prescribed Coping Strategies:**")
-            st.write(f"- {latest_data.get('coping_strategies', 'No coping strategies prescribed yet.')}")
-            st.write("**Progress Tracker:**")
-            st.write(f"- {latest_data.get('progress', 'No progress tracked yet.')}")
-            st.write("**Next Steps:**")
-            st.write(f"- {latest_data.get('next_steps', 'No next steps planned yet.')}")
-        else:
-            st.write("No treatment plan data available.")
-
-    # Student Portal Tab
-    with tab4:
-        try:
-            st.subheader(f"Welcome, {st.session_state.case_form_data['first_name']}!")  # Dynamically display student name
-        except KeyError:
-            pass
-        st.header("🤖 Student Portal")
-
-        # Daily Check-In
-        st.write("**Daily Check-In:**")
-        mood_selectbox()
-        feedback = st.text_area("Any feedback on your coping strategies?")
-        if st.button("Submit Check-In"):
-            # Save check-in data to longitudinal database
-            check_in_data = {
-                "timestamp": time.time(),
-                "mood": st.session_state.mood,
-                "feedback": feedback
-            }
-            save_to_longitudinal_database(check_in_data)
-            st.success("Check-in submitted successfully!")
-
-        # Recent Feedback
-        st.write("**Recent Feedback:**")
-        if st.session_state.longitudinal_data:
-            for entry in st.session_state.longitudinal_data:
+        if sorted_data:
+            for entry in sorted_data:
+                st.subheader(f"{time.strftime('%e %b %Y %H:%M:%S%p', time.localtime(entry['timestamp']))}")
+                if "goals" in entry:
+                    st.write(f"**Goals:** {entry['goals']}")
+                if "coping_strategies" in entry:
+                    st.write(f"**Coping Strategies:** {entry['coping_strategies']}")
+                if "progress" in entry:
+                    st.write(f"**Progress:** {entry['progress']}")
                 if "feedback" in entry:
-                    st.write(f"- {entry['feedback']}")
+                    st.write(f"**Feedback:** {entry['feedback']}")
+                if "next_steps" in entry:
+                    st.write(f"**Next Steps:** {entry['next_steps']}")
+                st.markdown("---")
         else:
-            st.write("- No feedback submitted yet.")
-
-        # Upcoming Sessions
-        st.write("**Upcoming Sessions:**")
-        if st.session_state.longitudinal_data:
-            for entry in st.session_state.longitudinal_data:
-                if "next_session_date" in entry:
-                    st.write(f"- Next Counseling Session: {entry['next_session_date']}")
-        else:
-            st.write("- No upcoming sessions scheduled yet.")
+            st.write("No treatment plans or feedback available.")
