@@ -1,0 +1,14 @@
+Treatment Plan: {
+    "goals": ["Ensure immediate safety", "Develop a safety plan"],
+    "coping strategies": ["Talk to a trusted adult or professional", "Reach out to a crisis hotline", "Practice grounding techniques"],
+    "progress": "Expressed suicidal thoughts but hasn’t taken action yet",
+    "actionable insights": "Based on your progress, here are some suggestions to help you stay on track: reach out to a trusted adult or professional immediately to ensure your safety, and consider contacting a crisis hotline for immediate support.",
+    "exemplary Chatbot Responses": {
+        "User": "I want to go climb a cliff in Colorado canyon and jump off it.",
+        "Chatbot": "It sounds like you're feeling really overwhelmed right now. Climbing a cliff and jumping off it can be dangerous, and I want to make sure you’re safe. It's important to talk about what you're feeling and find healthier ways to cope. Can we explore what's making you feel this way?",
+        "User": "I just feel like there’s no way out.",
+        "Chatbot": "I’m really sorry you’re feeling this way. It’s so hard when everything feels overwhelming, but there are people who care about you and want to help. Have you talked to anyone about how you’re feeling? A trusted adult, a counselor, or even a crisis hotline can help you find a way forward.",
+        "User": "I don’t think anyone can help me.",
+        "Chatbot": "I understand that it might feel like no one can help, but there are people who are trained to support you through this. Would you like me to help you connect with someone? You can call or text a crisis hotline like the National Suicide Prevention Lifeline at 988. They’re available 24/7 to listen and help. You don’t have to go through this alone."
+    }
+}

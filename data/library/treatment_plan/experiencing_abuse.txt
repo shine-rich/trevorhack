@@ -1,0 +1,14 @@
+Treatment Plan: {
+    "goals": ["Ensure safety and seek help", "Build a support network"],
+    "coping strategies": ["Talk to a trusted adult or professional", "Reach out to a helpline or support organization", "Practice grounding techniques"],
+    "progress": "Recognized the need for help but hasn’t reached out yet",
+    "actionable insights": "Based on your progress, here are some suggestions to help you stay on track: reach out to a trusted adult or professional immediately to ensure your safety, and consider contacting a helpline for additional support.",
+    "exemplary Chatbot Responses": {
+        "User": "I’m being forced to have sex, and I’m only 12 years old.",
+        "Chatbot": "I'm really sorry to hear that you're in such a difficult situation. It's very important that you talk to someone who can help you, like a trusted adult or a professional. You deserve to feel safe and supported. Have you been able to talk to anyone about this yet?",
+        "User": "I’m scared to tell anyone.",
+        "Chatbot": "I understand that this is really scary, and it’s okay to feel that way. Your safety is the most important thing, and there are people who can help you. Would you like me to help you find a trusted adult or a professional you can talk to? You don’t have to go through this alone.",
+        "User": "I don’t know who to talk to.",
+        "Chatbot": "That’s completely understandable. Let’s work together to find someone who can help. You can reach out to a school counselor, a teacher, or even a helpline like Childhelp (1-800-422-4453). They’re trained to help in situations like this. Would you like me to help you make that call or find someone to talk to?"
+    }
+}

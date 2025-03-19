@@ -1,0 +1,103 @@
+Treatment Plan: {
+    "goals": ["Practice mindfulness daily", "Break tasks into smaller steps"],
+    "coping strategies": ["Progressive muscle relaxation", "Listen to calming music", "Journal for 10 minutes"],
+    "progress": "Started deep breathing exercises but needs additional strategies",
+    "actionable insights": "Based on your progress, here are some suggestions to help you stay on track: try breaking your work deadlines into smaller, manageable tasks and pair this with progressive muscle relaxation to reduce anxiety.",
+    "exemplary Chatbot Responses": {
+        User: "Hi, I'm feeling really anxious today.",
+        Chatbot: "I'm really sorry to hear that you're feeling anxious. It’s completely okay to feel this way, especially when things get overwhelming. Can you tell me more about what’s been on your mind? I’m here to listen and help.",
+        User: "I've been struggling with work deadlines and feeling overwhelmed.",
+        Chatbot: "That sounds really tough. Deadlines can be so stressful, and it’s easy to feel overwhelmed. Let’s work together to find ways to make things feel more manageable. Have you tried breaking your tasks into smaller steps? It can help make big deadlines feel less intimidating.",
+        User: "I've tried deep breathing, but it hasn't been helping much.",
+        Chatbot: "Deep breathing is a great start, and it’s good that you’re trying things to help yourself. Since that hasn’t been enough, let’s explore some other strategies. How about trying progressive muscle relaxation? It’s a technique where you tense and relax different muscle groups to help release tension. Or, you could try journaling for 10 minutes to organize your thoughts and feelings. Would you like to explore one of these?",
+        User: "I've tried limiting screen time, but it hasn't been helping much.",
+        Chatbot: "Limiting screen time is a good effort, and it’s great that you’re taking steps to manage your stress. Since it hasn’t been enough, let’s try something new. How about listening to calming music while you work? It can help create a more relaxed environment. Or, you could try progressive muscle relaxation to help ease the physical tension that comes with stress. Which one would you like to try?"
+    }
+}
+
+Treatment Plan: {
+    "goals": ["Set boundaries between work and personal time", "Schedule regular breaks"],
+    "coping strategies": ["Deep breathing exercises", "Take a walk", "Practice mindfulness"],
+    "progress": "Started journaling but needs additional strategies",
+    "actionable insights": "Based on your progress, here are some suggestions to help you stay on track: try setting clear boundaries between work and personal time, and schedule regular breaks to recharge. Pair this with deep breathing exercises to help manage stress.",
+    "exemplary Chatbot Responses": {
+        User: "I'm feeling a bit stressed and overwhelmed.",
+        Chatbot: "I’m sorry you’re feeling this way. Stress and overwhelm can be really tough to handle, but you’re not alone. Let’s work through this together. What’s been on your mind lately?",
+        User: "I've been struggling with balancing work and personal life.",
+        Chatbot: "That sounds really challenging. Balancing work and personal life can feel like a constant juggling act. Have you tried setting clear boundaries between work and personal time? For example, you could designate specific hours for work and make sure to step away during personal time. It might help create a better balance.",
+        User: "I've tried journaling, but it hasn't been helping much.",
+        Chatbot: "Journaling is a great start, and it’s good that you’re trying things to help yourself. Since it hasn’t been enough, let’s explore some other strategies. How about trying deep breathing exercises? They can help calm your mind and body when you’re feeling stressed. Or, you could try taking a short walk during your breaks to clear your mind. Would you like to explore one of these?",
+        User: "I've tried journaling, but it hasn't been helping much.",
+        Chatbot: "It’s great that you’ve been journaling—it’s a really helpful tool for processing your thoughts. Since it hasn’t been enough, let’s try something new. How about practicing mindfulness for a few minutes each day? It can help you stay present and reduce stress. Or, you could try scheduling regular breaks throughout your day to recharge. Which one would you like to try?",
+    }
+}
+
+Treatment Plan: {
+    "goals": ["Practice mindfulness daily", "Break tasks into smaller steps"],
+    "coping strategies": ["Progressive muscle relaxation", "Listen to calming music", "Journal for 10 minutes"],
+    "progress": "Started deep breathing exercises but needs additional strategies",
+    "actionable insights": "Based on your progress, here are some suggestions to help you stay on track: try breaking your work deadlines into smaller, manageable tasks and pair this with progressive muscle relaxation to reduce anxiety.",
+    "exemplary Chatbot Responses": {
+        "User": "Hi, I'm feeling really anxious today.",
+        "Chatbot": "I'm really sorry to hear that you're feeling anxious. It’s completely okay to feel this way, especially when things get overwhelming. Can you tell me more about what’s been on your mind? I’m here to listen and help.",
+        "User": "I've been struggling with work deadlines and feeling overwhelmed.",
+        "Chatbot": "That sounds really tough. Deadlines can be so stressful, and it’s easy to feel overwhelmed. Let’s work together to find ways to make things feel more manageable. Have you tried breaking your tasks into smaller steps? It can help make big deadlines feel less intimidating.",
+        "User": "I've tried deep breathing, but it hasn't been helping much.",
+        "Chatbot": "Deep breathing is a great start, and it’s good that you’re trying things to help yourself. Since that hasn’t been enough, let’s explore some other strategies. How about trying progressive muscle relaxation? It’s a technique where you tense and relax different muscle groups to help release tension. Or, you could try journaling for 10 minutes to organize your thoughts and feelings. Would you like to explore one of these?",
+        "User": "I've tried limiting screen time, but it hasn't been helping much.",
+        "Chatbot": "Limiting screen time is a good effort, and it’s great that you’re taking steps to manage your stress. Since it hasn’t been enough, let’s try something new. How about listening to calming music while you work? It can help create a more relaxed environment. Or, you could try progressive muscle relaxation to help ease the physical tension that comes with stress. Which one would you like to try?"
+    }
+}
+
+Treatment Plan: {
+    "goals": ["Set boundaries between work and personal time", "Schedule regular breaks"],
+    "coping strategies": ["Deep breathing exercises", "Take a walk", "Practice mindfulness"],
+    "progress": "Started journaling but needs additional strategies",
+    "actionable insights": "Based on your progress, here are some suggestions to help you stay on track: try setting clear boundaries between work and personal time, and schedule regular breaks to recharge. Pair this with deep breathing exercises to help manage stress.",
+    "exemplary Chatbot Responses": {
+        "User": "I'm feeling a bit stressed and overwhelmed.",
+        "Chatbot": "I’m sorry you’re feeling this way. Stress and overwhelm can be really tough to handle, but you’re not alone. Let’s work through this together. What’s been on your mind lately?",
+        "User": "I've been struggling with balancing work and personal life.",
+        "Chatbot": "That sounds really challenging. Balancing work and personal life can feel like a constant juggling act. Have you tried setting clear boundaries between work and personal time? For example, you could designate specific hours for work and make sure to step away during personal time. It might help create a better balance.",
+        "User": "I've tried journaling, but it hasn't been helping much.",
+        "Chatbot": "Journaling is a great start, and it’s good that you’re trying things to help yourself. Since it hasn’t been enough, let’s explore some other strategies. How about trying deep breathing exercises? They can help calm your mind and body when you’re feeling stressed. Or, you could try taking a short walk during your breaks to clear your mind. Would you like to explore one of these?",
+        "User": "I've tried journaling, but it hasn't been helping much.",
+        "Chatbot": "It’s great that you’ve been journaling—it’s a really helpful tool for processing your thoughts. Since it hasn’t been enough, let’s try something new. How about practicing mindfulness for a few minutes each day? It can help you stay present and reduce stress. Or, you could try scheduling regular breaks throughout your day to recharge. Which one would you like to try?"
+    }
+}
+
+Treatment Plan: {
+    "goals": ["Limit screen time before bed", "Establish a bedtime routine"],
+    "coping strategies": ["Progressive muscle relaxation", "Listen to calming music", "Practice mindfulness"],
+    "progress": "Started limiting screen time but still struggling with sleep",
+    "actionable insights": "Based on your progress, here are some suggestions to help you stay on track: try establishing a consistent bedtime routine, such as reading or meditating before bed, and pair this with calming music to help you relax.",
+    "exemplary Chatbot Responses": {
+        "User": "I've been having trouble sleeping lately.",
+        "Chatbot": "I’m sorry to hear that you’re having trouble sleeping. Sleep is so important, and it’s tough when you’re not getting enough rest. Can you tell me more about what’s been keeping you up at night?",
+        "User": "I keep thinking about work and can’t seem to shut my mind off.",
+        "Chatbot": "That sounds really frustrating. It’s so hard to relax when your mind is racing. Have you tried limiting screen time before bed? It can help your brain wind down and prepare for sleep.",
+        "User": "I’ve tried limiting screen time, but it hasn’t been helping much.",
+        "Chatbot": "Limiting screen time is a great step, and it’s good that you’re trying things to help yourself. Since it hasn’t been enough, let’s explore some other strategies. How about trying progressive muscle relaxation? It’s a technique where you tense and relax different muscle groups to help release tension. Or, you could try listening to calming music before bed to help you relax. Would you like to explore one of these?",
+        "User": "I’ve tried calming music, but it hasn’t been helping much.",
+        "Chatbot": "It’s great that you’ve tried calming music—it’s a really helpful tool for relaxation. Since it hasn’t been enough, let’s try something new. How about establishing a bedtime routine? For example, you could read a book or practice mindfulness for a few minutes before bed. It can help signal to your brain that it’s time to sleep. Would you like to explore one of these?"
+    }
+}
+
+Treatment Plan: {
+    "goals": ["Reach out to a friend or family member", "Join a social activity or club"],
+    "coping strategies": ["Journal for 10 minutes", "Practice mindfulness", "Take a walk"],
+    "progress": "Started journaling but still feeling isolated",
+    "actionable insights": "Based on your progress, here are some suggestions to help you stay on track: try reaching out to a friend or family member for a chat, or consider joining a social activity or club to meet new people.",
+    "exemplary Chatbot Responses": {
+        "User": "I’ve been feeling really lonely lately.",
+        "Chatbot": "I’m really sorry to hear that you’re feeling lonely. It’s tough to feel isolated, and I’m here to help. Can you tell me more about what’s been on your mind?",
+        "User": "I don’t have many people to talk to, and it’s been hard to connect with others.",
+        "Chatbot": "That sounds really challenging. Feeling disconnected can be so hard. Have you tried reaching out to a friend or family member for a chat? Sometimes even a small conversation can make a big difference.",
+        "User": "I’ve tried journaling, but it hasn’t been helping much.",
+        "Chatbot": "Journaling is a great start, and it’s good that you’re trying things to help yourself. Since it hasn’t been enough, let’s explore some other strategies. How about joining a social activity or club? It can be a great way to meet new people and build connections. Or, you could try practicing mindfulness to help you feel more grounded. Would you like to explore one of these?",
+        "User": "I’ve tried mindfulness, but it hasn’t been helping much.",
+        "Chatbot": "It’s great that you’ve tried mindfulness—it’s a really helpful tool for staying present. Since it hasn’t been enough, let’s try something new. How about taking a walk in a park or a busy area? Sometimes being around others, even if you’re not talking to them, can help you feel less alone. Would you like to explore this?"
+    }
+}
+
+

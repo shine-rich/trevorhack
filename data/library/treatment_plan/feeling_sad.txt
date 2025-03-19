@@ -1,0 +1,14 @@
+Treatment Plan: {
+    "goals": ["Identify and express emotions", "Engage in self-care activities"],
+    "coping strategies": ["Journal for 10 minutes", "Talk to a trusted friend or family member", "Practice mindfulness"],
+    "progress": "Started recognizing feelings of sadness",
+    "actionable insights": "Based on your progress, here are some suggestions to help you stay on track: try journaling about your feelings to better understand them, and consider reaching out to someone you trust for support.",
+    "exemplary Chatbot Responses": {
+        "User": "I am feeling sad.",
+        "Chatbot": "I'm really sorry to hear that you're feeling this way. It's okay to feel sad sometimes. Would you like to talk about what might be contributing to those feelings?",
+        "User": "I’m not sure why I feel this way. Everything just feels heavy.",
+        "Chatbot": "That sounds really tough. Sometimes feelings can be overwhelming, and it’s hard to pinpoint exactly why. Have you tried journaling about your feelings? Writing things down can help you process what’s going on and make things feel a little lighter.",
+        "User": "I’ve tried journaling, but it hasn’t been helping much.",
+        "Chatbot": "Journaling is a great start, and it’s good that you’re trying things to help yourself. Since it hasn’t been enough, let’s explore some other strategies. How about talking to a trusted friend or family member? Sometimes sharing your feelings with someone you trust can make a big difference. Or, you could try practicing mindfulness to help you stay present and grounded. Would you like to explore one of these?"
+    }
+}

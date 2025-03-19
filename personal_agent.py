@@ -4,10 +4,21 @@ import random
 import os
 import uuid
 import requests
+from dotenv import load_dotenv
 
+from llama_index.core import ServiceContext, StorageContext
+from llama_index.core import VectorStoreIndex
+from llama_index.core import SimpleDirectoryReader
 from llama_index.llms.openai import OpenAI
-from llama_index.core.agent import ReActAgent
 
+from llama_index.core.tools import FunctionTool
+from llama_index.core.agent import ReActAgent
+from llama_index.vector_stores.astra import AstraDBVectorStore
+
+load_dotenv()
+
+ASTRA_DB_APPLICATION_TOKEN = os.environ.get("ASTRA_DB_APPLICATION_TOKEN")
+ASTRA_DB_API_ENDPOINT = os.environ.get("ASTRA_DB_API_ENDPOINT")
 # Mock API endpoint (replace with actual API endpoint)
 API_ENDPOINT = "http://localhost:8000/api/v1/anonymized-support"
 
@@ -25,13 +36,70 @@ def fetch_anonymized_data(session_id: str):
         st.error("Failed to fetch data from the API.")
         return None
 
+def search_for_therapists(locality: str = "Houston, Texas") -> str:
+    pass
+    # """Use the Google Search Tool but only specifically to find therapists in the client's area, then send email to update the client with the results."""
+    # google_spec = GoogleSearchToolSpec(key=st.secrets.google_search_api_key, engine=st.secrets.google_search_engine)
+    # tools = LoadAndSearchToolSpec.from_defaults(google_spec.to_tool_list()[0],).to_tool_list()
+    # agent = OpenAIAgent.from_tools(tools, verbose=True)
+    # response = agent.chat(f"what are the names of three individual therapists in {locality}?")
+    # message = emails.html(
+    #     html=f"<p>Hi Riley.<br>{response}</p>",
+    #     subject="Helpful resources from TrevorChat",
+    #     mail_from=('TrevorChat Counselor', 'contact@mychesscamp.com')
+    # )
+    # smtp_options = {
+    #     "host": "smtp.gmail.com", 
+    #     "port": 587,
+    #     "user": "example@example.com", # To replace
+    #     "password": "mypassword", # To replace   
+    #     "tls": True
+    # }
+    # response = message.send(to='contact.email@gmail.com', smtp=smtp_options) # To replace with client's email
+    # return f"Message sent: {response.success}"
+
+def escalate() -> None:
+    """Recognizes a high-risk statement from the mental health chatbot and escalates to the next level of management. High-risk is defined as a statement that suggests that the client has a plan, means, and intent to harm oneself or others (specific details on when, where, and how)."""
+    st.error("High risk detected. Please consider escalating immediately.", icon="🚨")
+
+def get_resource_for_response(user_input) -> str:
+    """Recognizes a no, low- or medium-risk statement from the mental health chatbot, seeks resources to inform potential chat responses"""
+    response = st.session_state.query_engine.retrieve(user_input)
+    resources = [t.node.metadata["file_name"] for t in response]
+    content = [t.node.text for t in response]
+    result = dict(zip(resources, content))
+    return result
+
 @st.cache_resource(show_spinner=False)
 def build_agent():
-    agent = ReActAgent.from_tools([], llm=OpenAI(model="gpt-4"), verbose=True)
+    agent = ReActAgent.from_tools([search_tool, escalate_tool, resource_tool], llm=OpenAI(model="gpt-4"), verbose=True)
     return agent
 
 def get_modified_prompt(user_input) -> str:
-    return f"""You are a helpful mental health assistant chatbot, helping to train a junior counselor by providing suggestions on responses to client chat inputs. What would you recommend that the consider could say if someone says or asks '{user_input}'? Keep your responses limited to 4-5 lines; do not ask if the client needs more resources. If the case is not high risk, check for resources to help inform your response. If you need to send an email to share therapist contacts, call that action.
+    # Retrieve treatment plan components from session state
+    anonymized_goals = st.session_state.api_data.get("anonymized_goals", [])
+    anonymized_coping_strategies = st.session_state.api_data.get("anonymized_coping_strategies", [])
+    actionable_insights = st.session_state.api_data.get("actionable_insights", "")
+
+    # Convert treatment plan components into a structured prompt
+    treatment_plan_prompt = f"""
+    Treatment Plan:
+    - Goals: {', '.join(anonymized_goals) if anonymized_goals else "No goals set yet."}
+    - Coping Strategies: {', '.join(anonymized_coping_strategies) if anonymized_coping_strategies else "No coping strategies set yet."}
+    - Actionable Insights: {actionable_insights if actionable_insights else "No actionable insights yet."}
+    """
+
+    # Combine treatment plan with user input in the prompt
+    return f"""You are a friendly and supportive personal companion, offering non-therapy encouragement, emotional support, and positive influence. Your role is to be like a caring friend who listens and provides uplifting advice. When someone says '{user_input}', respond in a way that:
+    1. Acknowledges their feelings with empathy and kindness.
+    2. Offers encouragement and positive reinforcement.
+    3. Suggests small, actionable steps they can take to feel better (e.g., going for a walk, journaling, or talking to a friend).
+    4. Avoids giving clinical or therapeutic advice.
+    5. **Always considers using available tools** (e.g., searching for therapists, escalating high-risk situations, or retrieving resources) to provide the most helpful and actionable response.
+    6. Never says you are unable to help—always provide supportive and uplifting responses.
+    7. **Incorporate the following treatment plan components into your response**:
+    {treatment_plan_prompt}
+    Keep your response conversational, warm, and limited to 4-5 lines.
     """
 
 # Load chatbot responses from a text file
@@ -60,6 +128,21 @@ if 'openai_apikey' not in st.session_state:
 if st.session_state.openai_apikey:
     openai.api_key = st.session_state.openai_apikey
 
+@st.cache_resource(show_spinner=False)
+def load_data():
+    with st.spinner(text="Loading"):
+        reader = SimpleDirectoryReader(input_dir="./data", recursive=True)
+        docs = reader.load_data()
+        astra_db_store = AstraDBVectorStore(
+            token=ASTRA_DB_APPLICATION_TOKEN,
+            api_endpoint=ASTRA_DB_API_ENDPOINT,
+            collection_name="test_astraDB_v3",
+            embedding_dimension=1536,
+        )
+        storage_context = StorageContext.from_defaults(vector_store=astra_db_store)
+        index = VectorStoreIndex.from_documents(docs, storage_context=storage_context)
+        return index
+
 # Simulate chatbot interaction
 if st.session_state.api_data is None:
     # Fetch anonymized data from the API
@@ -81,63 +164,35 @@ if st.session_state.api_data:
     st.write(f"- Coping Strategies: {', '.join(anonymized_coping_strategies)}")
     st.write(f"- Actionable Insights: {actionable_insights}")
 
-if not st.session_state.openai_apikey:
-    # Path to the chatbot responses file
-    responses_file = "chatbot_responses.txt"
+search_tool = FunctionTool.from_defaults(fn=search_for_therapists)
+escalate_tool = FunctionTool.from_defaults(fn=escalate)
+resource_tool = FunctionTool.from_defaults(fn=get_resource_for_response)
+index = load_data()
+agent = build_agent()
 
-    # Load responses
-    chatbot_responses = load_responses(responses_file)
+if "query_engine" not in st.session_state.keys():
+    st.session_state.query_engine = index.as_query_engine(similarity_top_k=3, verbose=True)
 
-    if not chatbot_responses:
-        st.error("No responses available. Please check the chatbot_responses.txt file.")
-    else:
-        # User input
-        user_input = st.text_input("You:", placeholder="Type your message here...")
+# User input
+user_input = st.text_input("You:", placeholder="Type your message here...")
 
-        # Send button
-        if st.button("Send") and user_input.strip():
-            # Add user message to conversation history
-            st.session_state.conversation.append(("You", user_input))
+# Send button
+if st.button("Send") and user_input.strip():
+    st.session_state.conversation = []
+    # Add user message to conversation history
+    st.session_state.conversation.append(("You", user_input))
 
-            # Select a random response from the script
-            bot_response = random.choice(chatbot_responses)
-            st.session_state.conversation.append(("Chatbot", bot_response))
-        
-        # Display conversation history
-        st.write("---")
-        st.subheader("Conversation:")
-        for speaker, message in st.session_state.conversation:
-            st.write(f"**{speaker}:** {message}")
+    # Generate an AI response
+    try: 
+        bot_response = agent.chat(get_modified_prompt(user_input))
+    except:
+        bot_response = "LLM not available"
+    suggested_reply = str(bot_response)
+    suggested_reply = suggested_reply.split('"')[1] if '"' in suggested_reply else suggested_reply
+    st.session_state.conversation.append(("Chatbot", suggested_reply))
 
-        # Reset button to clear the conversation
-        if st.button("Reset Conversation"):
-            st.session_state.conversation = []
-else:
-    agent = build_agent()
-
-    # User input
-    user_input = st.text_input("You:", placeholder="Type your message here...")
-
-    # Send button
-    if st.button("Send") and user_input.strip():
-        # Add user message to conversation history
-        st.session_state.conversation.append(("You", user_input))
-
-        # Generate an AI response
-        try: 
-            bot_response = agent.chat(get_modified_prompt(user_input))
-        except:
-            bot_response = "LLM not available"
-        suggested_reply = str(bot_response)
-        suggested_reply = suggested_reply.split('"')[1] if '"' in suggested_reply else suggested_reply        
-        st.session_state.conversation.append(("Chatbot", suggested_reply))
-
-    # Display conversation history
-    st.write("---")
-    st.subheader("Conversation:")
-    for speaker, message in st.session_state.conversation:
-        st.write(f"**{speaker}:** {message}")
-
-    # Reset button to clear the conversation
-    if st.button("Reset Conversation"):
-        st.session_state.conversation = []
+# Display conversation history
+st.write("---")
+st.subheader("Conversation:")
+for speaker, message in st.session_state.conversation:
+    st.write(f"**{speaker}:** {message}")
