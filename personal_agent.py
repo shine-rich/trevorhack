@@ -5,6 +5,11 @@ import os
 import uuid
 import requests
 from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
+from threading import Thread
 
 from llama_index.core import ServiceContext, StorageContext
 from llama_index.core import VectorStoreIndex
@@ -15,12 +20,28 @@ from llama_index.core.tools import FunctionTool
 from llama_index.core.agent import ReActAgent
 from llama_index.vector_stores.astra import AstraDBVectorStore
 
+# Load environment variables
 load_dotenv()
 
 ASTRA_DB_APPLICATION_TOKEN = os.environ.get("ASTRA_DB_APPLICATION_TOKEN")
 ASTRA_DB_API_ENDPOINT = os.environ.get("ASTRA_DB_API_ENDPOINT")
 # Mock API endpoint (replace with actual API endpoint)
 API_ENDPOINT = "http://localhost:8000/api/v1/anonymized-support"
+
+# Initialize FastAPI app
+app = FastAPI()
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins (for development only; restrict in production)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
+
+# Pydantic model for request body
+class UserInputRequest(BaseModel):
+    user_input: str
 
 # Simulate API request to fetch anonymized data
 def fetch_anonymized_data(session_id: str):
@@ -95,9 +116,10 @@ def get_modified_prompt(user_input) -> str:
     2. Offers encouragement and positive reinforcement.
     3. Suggests small, actionable steps they can take to feel better (e.g., going for a walk, journaling, or talking to a friend).
     4. Avoids giving clinical or therapeutic advice.
-    5. **Always considers using available tools** (e.g., searching for therapists, escalating high-risk situations, or retrieving resources) to provide the most helpful and actionable response.
-    6. Never says you are unable to help—always provide supportive and uplifting responses.
-    7. **Incorporate the following treatment plan components into your response**:
+    5. **Always uses tools to retrieve resources without exception** to provide the most helpful and actionable response. Do not skip using resource retrieval tools under any circumstances.
+    6. **Always considers using available tools** (e.g., searching for therapists, or escalating high-risk situations) to provide the most helpful and actionable response.
+    7. Never says you are unable to help—always provide supportive and uplifting responses.
+    8. **Incorporate the following treatment plan components into your response**:
     {treatment_plan_prompt}
     Keep your response conversational, warm, and limited to 4-5 lines.
     """
@@ -196,3 +218,19 @@ st.write("---")
 st.subheader("Conversation:")
 for speaker, message in st.session_state.conversation:
     st.write(f"**{speaker}:** {message}")
+
+# FastAPI Endpoint
+@app.post("/chat")
+def chat(request: UserInputRequest):
+    try:
+        # Generate an AI response
+        bot_response = agent.chat(get_modified_prompt(request.user_input))
+        suggested_reply = str(bot_response)
+        suggested_reply = suggested_reply.split('"')[1] if '"' in suggested_reply else suggested_reply
+        return {"response": suggested_reply}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Run the API server
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)
