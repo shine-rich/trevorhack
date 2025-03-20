@@ -159,7 +159,14 @@ def client_summary() -> str:
     return helpers.CLIENT_SUMMARY
 
 def get_modified_prompt(user_input) -> str:
-    return f"""You are a helpful mental health assistant chatbot, helping to train a junior counselor by providing suggestions on responses to client chat inputs. What would you recommend that the consider could say if someone says or asks '{user_input}'? Keep your responses limited to 4-5 lines; do not ask if the client needs more resources. If the case is not high risk, check for resources to help inform your response. If you need to send an email to share therapist contacts, call that action.
+    return f"""You are a friendly and supportive personal companion, offering non-therapy encouragement, emotional support, and positive influence. Your role is to be like a caring friend who listens and provides uplifting advice. When someone says '{user_input}', respond in a way that:
+    1. Acknowledges their feelings with empathy and kindness.
+    2. Offers encouragement and positive reinforcement.
+    3. Suggests small, actionable steps they can take to feel better (e.g., going for a walk, journaling, or talking to a friend).
+    4. Avoids giving clinical or therapeutic advice.
+    5. **Always uses tools to retrieve resources without exception** to provide the most helpful and actionable response. Do not skip using resource retrieval tools under any circumstances.
+    6. **Always considers using available tools** (e.g., searching for therapists, or escalating high-risk situations) to provide the most helpful and actionable response.
+    7. Never says you are unable to help—always provide supportive and uplifting responses.
     """
 
 def send_chat_message():
