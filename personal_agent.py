@@ -42,6 +42,7 @@ app.add_middleware(
 # Pydantic model for request body
 class UserInputRequest(BaseModel):
     user_input: str
+    user_id: str  # Add user_id to the request model
 
 # Simulate API request to fetch anonymized data
 def fetch_anonymized_data(session_id: str):
@@ -223,14 +224,20 @@ for speaker, message in st.session_state.conversation:
 @app.post("/chat")
 def chat(request: UserInputRequest):
     try:
+        # Check if the user_id matches the allowed value
+        if request.user_id != "tGcsMce6an1Hl4GtW0lQOQiOMyCFGD3v":
+            raise HTTPException(status_code=403, detail="Invalid session ID")
+
         # Generate an AI response
         bot_response = agent.chat(get_modified_prompt(request.user_input))
         suggested_reply = str(bot_response)
         suggested_reply = suggested_reply.split('"')[1] if '"' in suggested_reply else suggested_reply
         return {"response": suggested_reply}
+    except HTTPException as e:
+        raise e  # Re-raise HTTPException for invalid session ID
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 # Run the API server
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)

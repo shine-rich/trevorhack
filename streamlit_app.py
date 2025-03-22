@@ -423,7 +423,7 @@ if st.session_state.openai_apikey:
                                 st.session_state.case_form_data["phone_number"] = "555-1234"
                                 st.session_state.case_form_data["previous_mental_health_history"] = "Previous episodes of anxiety managed with therapy."
                                 st.session_state.case_form_data["follow_up_actions"] = "Schedule next session, provide resources on stress management, follow up with emergency contact if necessary."
-                                st.session_state.case_form_data["next_session_date"] = "2023-11-15"
+                                st.session_state.case_form_data["next_session_date"] = "2025-11-15"
                             st.write("Populating form...")
                             save_to_longitudinal_database({
                                 "timestamp": time.time(),
