@@ -52,8 +52,14 @@ if 'suggested_reply' not in st.session_state:
 if 'longitudinal_data' not in st.session_state:
     st.session_state.longitudinal_data = []  # For storing historical data
 
+if 'longitudinal_data_history' not in st.session_state:
+    st.session_state.longitudinal_data_history = []
+
 if 'should_populate_form_using_ai' not in st.session_state:
     st.session_state.should_populate_form_using_ai = False
+
+if 'should_display_latest_treatment_plan' not in st.session_state:
+    st.session_state.should_display_latest_treatment_plan = True
 
 # Initialize session state for Case Form fields
 if 'case_form_data' not in st.session_state:
@@ -327,7 +333,105 @@ def display_conversation_themes(chat_history):
                     """, unsafe_allow_html=True)
         else:
             st.write("🌟 Primary Theme: General Well-being Check-in")
-            
+
+def parse_and_update_treatment_plan(query, longitudinal_data):
+    """
+    Parse the update query and either update the latest treatment plan or add a new one.
+    """
+    try:
+        # Save the current state to history before making changes
+        st.session_state.longitudinal_data_history.append({
+            "timestamp": time.time(),
+            "data": [entry.copy() for entry in longitudinal_data]  # Deep copy of the data
+        })
+
+        # Check if the query is to add a new treatment plan
+        if query.lower().startswith("add a new treatment plan"):
+            # Extract progress and next steps from the query
+            progress = None
+            next_steps = None
+
+            if "progress =" in query:
+                progress = query.split("progress =")[1].split("and")[0].strip().strip("'")
+            if "next step =" in query:
+                next_steps = query.split("next step =")[1].strip().strip("'")
+
+            # Create a new treatment plan entry
+            new_entry = {
+                "timestamp": time.time(),
+                "progress": progress if progress else "",
+                "next_steps": next_steps if next_steps else "",
+                "goals": "",
+                "coping_strategies": "",
+                "feedback": "",
+            }
+
+            # Add the new entry to the longitudinal data
+            longitudinal_data.append(new_entry)
+            return new_entry
+
+        else:
+            # Update the latest treatment plan (existing logic)
+            if not longitudinal_data:
+                raise ValueError("No treatment plan found to update.")
+
+            latest_entry = longitudinal_data[-1]
+
+            # Parse the updates from the query
+            updates = {}
+            if "add progress =" in query:
+                progress = query.split("add progress =")[1].split("and")[0].strip().strip("'")
+                updates["progress"] = progress
+            if "next step =" in query:
+                next_step = query.split("next step =")[1].strip().strip("'")
+                updates["next_steps"] = next_step
+
+            # Apply the updates to the latest entry
+            for key, value in updates.items():
+                latest_entry[key] = value
+
+            return latest_entry
+
+    except Exception as e:
+        raise ValueError(f"Failed to parse and update treatment plan: {str(e)}")
+
+def undo_last_update():
+    """
+    Revert the treatment plan to the previous state.
+    """
+    if st.session_state.longitudinal_data_history:
+        # Get the last saved state
+        last_state = st.session_state.longitudinal_data_history.pop()
+        st.session_state.longitudinal_data = last_state["data"]
+        st.success("Last update reverted successfully!")
+    else:
+        st.warning("No changes to undo.")
+
+def display_latest_treatment_plan(latest_entry, previous_entry=None):
+    """
+    Display the latest treatment plan with animations for changes.
+    """
+    st.subheader(f"Latest Treatment Plan ({time.strftime('%e %b %Y %H:%M:%S%p', time.localtime(latest_entry['timestamp']))})")
+
+    # Define a function to highlight changes with animations
+    def highlight_change(current_value, previous_value, field_name):
+        if previous_entry and current_value != previous_value.get(field_name, ""):
+            return f"<span class='updated-field'>{current_value}</span>"
+        return current_value
+
+    # Display each field with visual feedback
+    if "goals" in latest_entry:
+        st.write(f"**Goals:** {highlight_change(latest_entry['goals'], previous_entry, 'goals')}", unsafe_allow_html=True)
+    if "coping_strategies" in latest_entry:
+        st.write(f"**Coping Strategies:** {highlight_change(latest_entry['coping_strategies'], previous_entry, 'coping_strategies')}", unsafe_allow_html=True)
+    if "progress" in latest_entry:
+        st.write(f"**Progress:** {highlight_change(latest_entry['progress'], previous_entry, 'progress')}", unsafe_allow_html=True)
+    if "feedback" in latest_entry:
+        st.write(f"**Feedback:** {highlight_change(latest_entry['feedback'], previous_entry, 'feedback')}", unsafe_allow_html=True)
+    if "next_steps" in latest_entry:
+        st.write(f"**Next Steps:** {highlight_change(latest_entry['next_steps'], previous_entry, 'next_steps')}", unsafe_allow_html=True)
+    st.markdown("---")
+
 if st.session_state.openai_apikey:
     search_tool = FunctionTool.from_defaults(fn=search_for_therapists)
     escalate_tool = FunctionTool.from_defaults(fn=escalate)
@@ -546,24 +650,80 @@ if st.session_state.openai_apikey:
 
     # Treatment Plans & Feedback Tab (Consolidated tab3)
     with tab3:
+        # Inject custom CSS for animations
+        st.markdown("""
+        <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .updated-field {
+            animation: fadeIn 1s ease-in-out;
+            color: green;
+            font-weight: bold;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        # Inject custom JavaScript for animations
+        st.markdown("""
+        <script>
+        function slideIn(element) {
+            element.style.opacity = "0";
+            element.style.transform = "translateX(-100%)";
+            setTimeout(() => {
+                element.style.opacity = "1";
+                element.style.transform = "translateX(0)";
+            }, 100);
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const updatedFields = document.querySelectorAll(".updated-field");
+            updatedFields.forEach(field => slideIn(field));
+        });
+        </script>
+        """, unsafe_allow_html=True)
         st.header("Treatment Plans & Feedback")
         
-        # Sort longitudinal_data by timestamp in descending order
-        sorted_data = sorted(st.session_state.longitudinal_data, key=lambda x: x.get("timestamp", 0), reverse=True)
+        # Add a query input field for updating treatment plans
+        update_query = st.text_area(
+            "Update Treatment Plan",
+            placeholder="Example: Add a new treatment plan/add progress = 'Alex has started mindfulness exercises' and next step = 'Schedule next session, provide stress management resources.'"
+        )
 
-        if sorted_data:
-            for entry in sorted_data:
-                st.subheader(f"{time.strftime('%e %b %Y %H:%M:%S%p', time.localtime(entry['timestamp']))}")
-                if "goals" in entry:
-                    st.write(f"**Goals:** {entry['goals']}")
-                if "coping_strategies" in entry:
-                    st.write(f"**Coping Strategies:** {entry['coping_strategies']}")
-                if "progress" in entry:
-                    st.write(f"**Progress:** {entry['progress']}")
-                if "feedback" in entry:
-                    st.write(f"**Feedback:** {entry['feedback']}")
-                if "next_steps" in entry:
-                    st.write(f"**Next Steps:** {entry['next_steps']}")
-                st.markdown("---")
-        else:
-            st.write("No treatment plans or feedback available.")
+        # Add a button to submit the update query
+        if st.button("Submit Update"):
+            if update_query:
+                try:
+                    # Save the previous state for visual feedback
+                    previous_entry = st.session_state.longitudinal_data[-1].copy() if st.session_state.longitudinal_data else None
+
+                    # Parse the update query and apply changes to the latest treatment plan
+                    updated_entry = parse_and_update_treatment_plan(update_query, st.session_state.longitudinal_data)
+                    if updated_entry:
+                        st.success("Treatment plan updated successfully!")
+                        display_latest_treatment_plan(updated_entry, previous_entry)
+                        st.session_state.should_display_latest_treatment_plan = False
+                    else:
+                        st.error("No treatment plan found to update.")
+                except Exception as e:
+                    st.error(f"Error updating treatment plan: {str(e)}")
+            else:
+                st.warning("Please enter an update query.")
+
+        # Add an Undo button
+        if st.button("Undo Last Update"):
+            try:
+                undo_last_update()
+                if st.session_state.longitudinal_data:
+                    display_latest_treatment_plan(st.session_state.longitudinal_data[-1])
+            except Exception as e:
+                st.error(f"Error reverting update: {str(e)}")
+
+        if st.session_state.should_display_latest_treatment_plan:
+            # Display the latest treatment plan
+            if st.session_state.longitudinal_data:
+                display_latest_treatment_plan(st.session_state.longitudinal_data[-1])
+            else:
+                st.write("No treatment plans or feedback available.")
