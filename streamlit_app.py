@@ -1,4 +1,6 @@
 import streamlit as st
+from streamlit_elements import elements, mui, html, dashboard
+import numpy as np
 import openai
 import time
 import helpers
@@ -648,82 +650,213 @@ if st.session_state.openai_apikey:
             st.session_state.case_form_data["follow_up_actions"] = st.text_area("Follow-Up Actions", value=st.session_state.case_form_data["follow_up_actions"])
             st.session_state.case_form_data["next_session_date"] = st.text_input("Next Session Date", value=st.session_state.case_form_data["next_session_date"])
 
-    # Treatment Plans & Feedback Tab (Consolidated tab3)
+
     with tab3:
-        # Inject custom CSS for animations
-        st.markdown("""
-        <style>
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .updated-field {
-            animation: fadeIn 1s ease-in-out;
-            color: green;
-            font-weight: bold;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-        # Inject custom JavaScript for animations
-        st.markdown("""
-        <script>
-        function slideIn(element) {
-            element.style.opacity = "0";
-            element.style.transform = "translateX(-100%)";
-            setTimeout(() => {
-                element.style.opacity = "1";
-                element.style.transform = "translateX(0)";
-            }, 100);
-        }
-
-        document.addEventListener("DOMContentLoaded", function() {
-            const updatedFields = document.querySelectorAll(".updated-field");
-            updatedFields.forEach(field => slideIn(field));
-        });
-        </script>
-        """, unsafe_allow_html=True)
-        st.header("Treatment Plans & Feedback")
+        st.header("Treatment Plan Assistant")
         
-        # Add a query input field for updating treatment plans
-        update_query = st.text_area(
-            "Update Treatment Plan",
-            placeholder="Example: Add a new treatment plan/add progress = 'Alex has started mindfulness exercises' and next step = 'Schedule next session, provide stress management resources.'"
-        )
+        # Initialize chat history and latest_entry if not exists
+        if "treatment_chat" not in st.session_state:
+            st.session_state.update({
+                "treatment_chat": [
+                    {"role": "assistant", "content": "Ask me to show: progress, tools, or CBT suggestions"}
+                ],
+                "client_data": {
+                    "progress": "Client has reduced anxiety attacks from 5x/week to 2x/week",
+                    "goals": "Practice grounding techniques daily, establish sleep routine",
+                    "next_steps": "Schedule follow-up in 2 weeks",
+                    "tools": ["Mood tracker", "Breathing exercise audio", "Sleep hygiene checklist"],
+                    "cbt_techniques": [
+                        "Thought record for cognitive distortions",
+                        "Behavioral activation schedule",
+                        "5-4-3-2-1 grounding technique"
+                    ],
+                    "risk_level": "Low"
+                },
+                "latest_entry": {
+                    "progress": "medium progress",
+                    "goals": "eat more apple",
+                    "next_steps": "come back in 2 weeks",
+                    "risk_level": "Medium",
+                    "risk_notes": "Monitor for increased hopelessness"
+                }
+            })
 
-        # Add a button to submit the update query
-        if st.button("Submit Update"):
-            if update_query:
+        # Define a clean grid layout (x, y, width, height)
+        layout = [
+            # Row 1: Top-wide cards
+            dashboard.Item("progress_summary", 0, 0, 4, 2),  # Wider progress summary
+            dashboard.Item("cbt_suggestions", 4, 0, 4, 2),   # Wider CBT suggestions
+            
+            # Row 2: Middle components
+            dashboard.Item("risk_alert", 0, 2, 4, 1),        # Risk alert (full width)
+            
+            # Row 3: Bottom cards
+            dashboard.Item("tools_card", 0, 3, 4, 2),     # Progress card (left)
+        ]
+        
+        # Display chat history
+        for i, message in enumerate(st.session_state.treatment_chat):
+            with st.chat_message(message["role"]):
+                if isinstance(message.get("content"), str):
+                    # Simple text response
+                    st.write(message["content"])
+                elif isinstance(message.get("content"), dict):
+                    # Structured response with MUI components
+                    with elements(f"response_{i}"):  # Unique key for each response
+                        with dashboard.Grid(layout):
+                            if message["content"]["type"] == "progress_summary":
+                                with mui.Paper(key="progress_summary", elevation=3, sx={"p": 2, "my": 1, "borderLeft": "4px solid #1976d2", "bgcolor": "#f5f5f5"}):
+                                    mui.Typography("Treatment Progress", variant="h6")
+                                    mui.Divider()
+                                    mui.Typography(f"Last Session: {message['content']['data']['progress']}")                                    
+                                    mui.Stack(
+                                        mui.Chip(label=f"Goals: {message['content']['data']['goals']}", color="primary"),
+                                        mui.Chip(label=f"Next Steps: {message['content']['data']['next_steps']}", color="secondary"),
+                                        spacing=1
+                                    )
+                                    mui.Button("VIEW FULL HISTORY", 
+                                            variant="outlined", 
+                                            sx={"mt": 1},
+                                            onClick=lambda: st.session_state.treatment_chat.append(
+                                                {"role": "assistant", "content": "Full history: [Would display expanded timeline here]"}
+                                            ))
+                            
+                            elif message["content"]["type"] == "risk_alert":
+                                # Risk Alert (Middle, full width)
+                                with mui.Paper(
+                                    key="risk_alert",
+                                    sx={
+                                        "mb": 2,
+                                        "borderLeft": "4px solid #ff9800",
+                                        "bgcolor": "#fff3e0",
+                                        "p": 2,
+                                        "height": "100%",
+                                    }
+                                ):
+                                    mui.Typography("Risk Level: Medium", variant="h6")
+                                    mui.Typography("Monitor for increased hopelessness per last session.")
+
+                            elif message["content"]["type"] == "tools_card":
+                                with mui.Card(key="tools_card", sx={"p": 2, "my": 1, "bgcolor": "#f5f5f5"}):
+                                    mui.CardHeader(title="Recommended Tools")
+                                    mui.Divider()
+                                    mui.CardContent(
+                                        mui.List(
+                                            *[mui.ListItem(tool) for tool in st.session_state.client_data["tools"]],
+                                            dense=True
+                                        )
+                                    )
+
+                            elif message["content"]["type"] == "cbt_suggestions":
+                                with mui.Card(key="cbt_suggestions", sx={"p": 2, "my": 1, "borderLeft": "4px solid #4caf50"}):
+                                    mui.CardHeader(title="CBT Techniques", 
+                                                avatar=mui.icon.Psychology())
+                                    mui.Divider()
+                                    mui.CardContent(
+                                        mui.List(
+                                            *[mui.ListItem(
+                                                mui.Stack(
+                                                    mui.icon.CheckCircle(color="success"),
+                                                    mui.Typography(tech),
+                                                    direction="row", spacing=2
+                                                )
+                                            ) for tech in st.session_state.client_data["cbt_techniques"]]
+                                        )
+                                    )
+
+        # User input handling
+        if prompt := st.chat_input("Ask about treatment plans..."):
+            # Add user message to chat
+            st.session_state.treatment_chat.append({"role": "user", "content": prompt})
+            
+            response_map = {
+                "tools": {"type": "tools_card", "trigger": ["tool", "resource", "material"]},
+                "cbt": {"type": "cbt_suggestions", "trigger": ["cbt", "technique", "exercise", "activity"]}
+            }
+
+            # Process query and generate appropriate response
+            response = None
+            prompt_lower = prompt.lower()
+            
+            for key, config in response_map.items():
+                if any(trigger in prompt_lower for trigger in config["trigger"]):
+                    response = {"type": config["type"]}
+                    break
+            
+            if any(w in prompt_lower for w in ["progress", "summary"]):
+                response = {
+                    "type": "progress_summary",
+                    "data": {
+                        "progress": st.session_state.latest_entry["progress"],
+                        "goals": st.session_state.latest_entry["goals"],
+                        "next_steps": st.session_state.latest_entry["next_steps"]
+                    }
+                }
+            elif any(w in prompt_lower for w in ["risk", "urgent", "emergency"]):
+                response = {
+                    "type": "risk_alert",
+                    "data": {
+                        "level": st.session_state.latest_entry["risk_level"],
+                        "notes": st.session_state.latest_entry["risk_notes"]
+                    }
+                }                
+            elif any(w in prompt_lower for w in ["add", "update", "treatment", "plan"]):
                 try:
-                    # Save the previous state for visual feedback
-                    previous_entry = st.session_state.longitudinal_data[-1].copy() if st.session_state.longitudinal_data else None
-
-                    # Parse the update query and apply changes to the latest treatment plan
-                    updated_entry = parse_and_update_treatment_plan(update_query, st.session_state.longitudinal_data)
-                    if updated_entry:
-                        st.success("Treatment plan updated successfully!")
-                        display_latest_treatment_plan(updated_entry, previous_entry)
-                        st.session_state.should_display_latest_treatment_plan = False
-                    else:
-                        st.error("No treatment plan found to update.")
+                    # Parse and update treatment plan
+                    updated_entry = parse_and_update_treatment_plan(
+                        prompt_lower, 
+                        st.session_state.longitudinal_data
+                    )
+                    
+                    # Update the displayed summary
+                    st.session_state.latest_entry = {
+                        "progress": updated_entry.get("progress", ""),
+                        "goals": updated_entry.get("goals", ""),
+                        "next_steps": updated_entry.get("next_steps", ""),
+                        "risk_level": st.session_state.latest_entry.get("risk_level", "Medium"),
+                        "risk_notes": "Monitor for increased hopelessness"
+                    }
+                    
+                    # Add to chat
+                    st.session_state.treatment_chat.append({
+                        "role": "assistant",
+                        "content": {
+                            "type": "progress_summary",
+                            "data": st.session_state.latest_entry
+                        }
+                    })
+                    st.rerun()
+                    
                 except Exception as e:
-                    st.error(f"Error updating treatment plan: {str(e)}")
-            else:
-                st.warning("Please enter an update query.")
+                    st.error(f"Update failed: {str(e)}")
+            
+            if not response:
+                response = """I can help with:
 
-        # Add an Undo button
-        if st.button("Undo Last Update"):
-            try:
-                undo_last_update()
-                if st.session_state.longitudinal_data:
-                    display_latest_treatment_plan(st.session_state.longitudinal_data[-1])
-            except Exception as e:
-                st.error(f"Error reverting update: {str(e)}")
+                🔹 **Treatment Progress**  
+                - "Show progress summary"  
+                - "Latest updates"  
 
-        if st.session_state.should_display_latest_treatment_plan:
-            # Display the latest treatment plan
-            if st.session_state.longitudinal_data:
-                display_latest_treatment_plan(st.session_state.longitudinal_data[-1])
-            else:
-                st.write("No treatment plans or feedback available.")
+                🔹 **Therapeutic Tools**  
+                - "What tools are available?"  
+                - "Show resources"  
+
+                🔹 **CBT Techniques**  
+                - "Suggest CBT exercises"  
+                - "Cognitive techniques"  
+
+                🔹 **Risk Assessment**  
+                - "Current risk level"  
+                - "Any concerns?"  
+
+                Try being specific like: "Show me the client's recent progress" or "What CBT techniques would help with anxiety?"
+                """
+
+            # Add response to chat
+            st.session_state.treatment_chat.append({
+                "role": "assistant", 
+                "content": response if isinstance(response, dict) else response
+            })
+            
+            # Force UI update
+            st.rerun()
