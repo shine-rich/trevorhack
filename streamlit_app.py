@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_elements import elements, mui, html, dashboard
+from streamlit_elements import elements, mui, html, dashboard, nivo
 import numpy as np
 import openai
 import time
@@ -62,6 +62,23 @@ if 'should_populate_form_using_ai' not in st.session_state:
 
 if 'should_display_latest_treatment_plan' not in st.session_state:
     st.session_state.should_display_latest_treatment_plan = True
+
+if "trigger_log" not in st.session_state:
+    st.session_state.update({
+        "trigger_log": [
+            {"date": "05/20", "description": "Missed medication", "severity": 3},
+            {"date": "05/22", "description": "Work deadline stress", "severity": 2}
+        ],
+        "coping_strategies": [
+            {
+                "name": "5-4-3-2-1 Grounding",
+                "duration": "3 mins",
+                "instructions": "Name 5 things you see, 4 you can touch...",
+                "last_used": None
+            }
+        ],
+        "risk_level": "Medium"  # Dynamically updated from radar
+    })
 
 # Initialize session state for Case Form fields
 if 'case_form_data' not in st.session_state:
@@ -434,6 +451,14 @@ def display_latest_treatment_plan(latest_entry, previous_entry=None):
         st.write(f"**Next Steps:** {highlight_change(latest_entry['next_steps'], previous_entry, 'next_steps')}", unsafe_allow_html=True)
     st.markdown("---")
 
+def mark_strategy_tried(index):
+    st.session_state.coping_strategies[index]["last_used"] = datetime.now()
+    st.rerun()
+
+def flag_unhelpful_strategy(index):
+    st.session_state.coping_strategies[index]["helpful"] = False
+    st.rerun()
+
 if st.session_state.openai_apikey:
     search_tool = FunctionTool.from_defaults(fn=search_for_therapists)
     escalate_tool = FunctionTool.from_defaults(fn=escalate)
@@ -685,13 +710,21 @@ if st.session_state.openai_apikey:
         layout = [
             # Row 1: Top-wide cards
             dashboard.Item("progress_summary", 0, 0, 4, 2),  # Wider progress summary
-            dashboard.Item("cbt_suggestions", 4, 0, 4, 2),   # Wider CBT suggestions
-            
+            dashboard.Item("progress_chart", 4, 0, 4, 2),     # Progress card (left)
+
             # Row 2: Middle components
-            dashboard.Item("risk_alert", 0, 2, 4, 1),        # Risk alert (full width)
-            
-            # Row 3: Bottom cards
+            dashboard.Item("risk_alert", 0, 0, 4, 1),        # Risk alert (full width)
+            dashboard.Item("risk_chart", 4, 0, 4, 2),     # Progress card (left)
+            dashboard.Item("trigger_log", 0, 2, 4, 2),   # Wider CBT suggestions
+            dashboard.Item("crisis_protocols", 4, 2, 4, 2),   # Wider CBT suggestions
+            dashboard.Item("coping_strategies", 0, 6, 4, 2),   # Wider CBT suggestions
+
+            # Row 3: Bottom cards          
             dashboard.Item("tools_card", 0, 3, 4, 2),     # Progress card (left)
+            dashboard.Item("adherence_chart", 4, 3, 4, 2),     # Progress card (left)
+
+            
+            dashboard.Item("cbt_suggestions", 0, 2, 4, 2),   # Wider CBT suggestions
         ]
         
         # Display chat history
@@ -705,7 +738,7 @@ if st.session_state.openai_apikey:
                     with elements(f"response_{i}"):  # Unique key for each response
                         with dashboard.Grid(layout):
                             if message["content"]["type"] == "progress_summary":
-                                with mui.Paper(key="progress_summary", elevation=3, sx={"p": 2, "my": 1, "borderLeft": "4px solid #1976d2", "bgcolor": "#f5f5f5"}):
+                                with mui.Paper(key="progress_summary", elevation=3, sx={"p": 2, "my": 1, "borderLeft": "4px solid #1976d2", "bgcolor": "#FEFBF5"}):
                                     mui.Typography("Treatment Progress", variant="h6")
                                     mui.Divider()
                                     mui.Typography(f"Last Session: {message['content']['data']['progress']}")                                    
@@ -720,7 +753,61 @@ if st.session_state.openai_apikey:
                                             onClick=lambda: st.session_state.treatment_chat.append(
                                                 {"role": "assistant", "content": "Full history: [Would display expanded timeline here]"}
                                             ))
-                            
+
+                                DATA = [
+                                    { "progress": "Anxiety", "baseline": 93, "current": 61 },
+                                    { "progress": "Depression", "baseline": 91, "current": 37 },
+                                    { "progress": "Sleep", "baseline": 56, "current": 95 },
+                                    { "progress": "Social", "baseline": 64, "current": 90 },
+                                    { "progress": "Focus", "baseline": 119, "current": 94 },
+                                ]
+
+                                with mui.Card(key="progress_chart", sx={"p": 2, "my": 1, "bgcolor": "#FEFBF5"}):
+                                    nivo.Radar(
+                                        data=DATA,
+                                        keys=[ "baseline", "current" ],
+                                        indexBy="progress",
+                                        valueFormat=">-.2f",
+                                        margin={ "top": 70, "right": 80, "bottom": 40, "left": 80 },
+                                        borderColor={ "from": "color" },
+                                        gridLabelOffset=36,
+                                        dotSize=10,
+                                        dotColor={ "theme": "background" },
+                                        dotBorderWidth=2,
+                                        motionConfig="wobbly",
+                                        legends=[
+                                            {
+                                                "anchor": "top-left",
+                                                "direction": "column",
+                                                "translateX": -50,
+                                                "translateY": -40,
+                                                "itemWidth": 80,
+                                                "itemHeight": 20,
+                                                "itemTextColor": "#999",
+                                                "symbolSize": 12,
+                                                "symbolShape": "circle",
+                                                "effects": [
+                                                    {
+                                                        "on": "hover",
+                                                        "style": {
+                                                            "itemTextColor": "#000"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        theme={
+                                            "background": "#FEFBF5",
+                                            "textColor": "#31333F",
+                                            "tooltip": {
+                                                "container": {
+                                                    "background": "#FEFBF5",
+                                                    "color": "#31333F",
+                                                }
+                                            }
+                                        }
+                                    )
+
                             elif message["content"]["type"] == "risk_alert":
                                 # Risk Alert (Middle, full width)
                                 with mui.Paper(
@@ -736,6 +823,180 @@ if st.session_state.openai_apikey:
                                     mui.Typography("Risk Level: Medium", variant="h6")
                                     mui.Typography("Monitor for increased hopelessness per last session.")
 
+                                with mui.Card(key="trigger_log", sx={"p": 2, "mt": 2, "borderLeft": "4px solid #ff5722"}):
+                                    with mui.CardHeader(title="Trigger Log", avatar=mui.icon.Warning(color="error")):
+                                        mui.Typography("Recent risk triggers", variant="body2", color="text.secondary")
+                                    
+                                    with mui.CardContent():
+                                        # Editable table
+                                        with mui.TableContainer():
+                                            with mui.Table(size="small"):
+                                                with mui.TableHead():
+                                                    with mui.TableRow():
+                                                        mui.TableCell("Date")
+                                                        mui.TableCell("Trigger")
+                                                        mui.TableCell("Severity (1-5)")
+                                                        mui.TableCell("")  # Actions column
+                                                
+                                                with mui.TableBody():
+                                                    for i, trigger in enumerate(st.session_state.trigger_log):
+                                                        with mui.TableRow(key=f"trigger_{i}"):
+                                                            mui.TableCell(trigger["date"])
+                                                            mui.TableCell(trigger["description"])
+                                                            mui.TableCell(
+                                                                mui.Rating(
+                                                                    value=trigger["severity"],
+                                                                    size="small"
+                                                                )
+                                                            )
+                                                            mui.TableCell(
+                                                                mui.IconButton(mui.icon.Delete, onClick=lambda idx=i: 
+                                                                    st.session_state.trigger_log.pop(idx)
+                                                                )
+                                                            )
+                                        
+                                                            # Add new trigger
+                                                            with mui.Stack(direction="row", spacing=2, sx={"mt": 2}):
+                                                                trigger_input = mui.TextField(
+                                                                    size="small",
+                                                                    placeholder="New trigger (e.g. 'Argument with family')",
+                                                                    sx={"flexGrow": 1}
+                                                                )
+                                                                mui.Button(
+                                                                    "Add",
+                                                                    variant="outlined",
+                                                                    startIcon=mui.icon.Add(),
+                                                                    onClick=lambda: st.session_state.trigger_log.append({
+                                                                        "date": datetime.now().strftime("%m/%d"),
+                                                                        "description": trigger_input.value,
+                                                                        "severity": 3
+                                                                    })
+                                                                )
+
+                                with mui.Card(key="crisis_protocols", sx={"p": 2, "mt": 2, "bgcolor": "#fff8e1"}):
+                                    with mui.CardHeader(
+                                        title="Crisis Protocols",
+                                        avatar=mui.icon.Emergency(color="warning"),
+                                        action=mui.IconButton(mui.icon.ExpandMore)
+                                    ):
+                                        pass
+                                    
+                                    with mui.CardContent():
+                                        with mui.List(dense=True):
+                                            # Dynamic based on risk level
+                                            if st.session_state.risk_level == "High":
+                                                protocols = [
+                                                    ("🚨 Contact emergency services", "#ffebee"),
+                                                    ("📞 Call designated responder: Jordan (555-1234)", "#fff3e0"),
+                                                    ("🏠 Initiate safe space protocol", "#e8f5e9")
+                                                ]
+                                            else:
+                                                protocols = [
+                                                    ("📱 Schedule crisis check-in call", "#e3f2fd"),
+                                                    ("✍️ Complete safety plan worksheet", "#f3e5f5"),
+                                                    ("🌿 Use grounding techniques", "#e8f5e9")
+                                                ]
+                                            
+                                            for protocol, bgcolor in protocols:
+                                                with mui.ListItem(
+                                                    sx={"borderLeft": f"4px solid {bgcolor}", "mb": 1}
+                                                ):
+                                                    mui.ListItemText(primary=protocol)
+                                                    mui.Checkbox(edge="end")
+
+                                with mui.Card(key="coping_strategies", sx={"p": 2, "mt": 2, "border": "1px solid #e0e0e0"}):
+                                    with mui.CardHeader(
+                                        title="Recommended Coping Strategies",
+                                        subheader="Adapted to current risk profile",
+                                        avatar=mui.icon.Psychology(color="primary")
+                                    ):
+                                        pass
+                                    
+                                    with mui.CardContent():
+                                        mui.Chip(
+                                            label="High Anxiety" if st.session_state.risk_level == "High" else "General",
+                                            color="warning" if st.session_state.risk_level == "High" else "default",
+                                            size="small"
+                                        )
+                                        for strategy in st.session_state.coping_strategies:
+                                            with mui.Paper(sx={"p": 2, "mb": 2, "bgcolor": "#f5f5f5"}):
+                                                mui.Typography(strategy["name"], fontWeight="bold")
+                                                mui.Typography(strategy["instructions"], variant="body2")
+                                                # Buttons here...
+                                                            
+                                                # Action buttons
+                                                with mui.Stack(direction="row", spacing=1):
+                                                    mui.Button(
+                                                        "Mark as Tried",
+                                                        variant="outlined",
+                                                        size="small",
+                                                        startIcon=mui.icon.Check(),
+                                                        onClick=lambda i=i: mark_strategy_tried(i),
+                                                        sx={"mr": 1}
+                                                    )
+                                                    mui.Button(
+                                                        "Not Helpful",
+                                                        variant="outlined",
+                                                        size="small",
+                                                        color="error",
+                                                        startIcon=mui.icon.Close(),
+                                                        onClick=lambda i=i: flag_unhelpful_strategy(i)
+                                                    )
+
+                                DATA = [
+                                    { "risk": "Suicidal Ideation", "baseline": 83, "current": 51, "thresholds": 41 },
+                                    { "risk": "Self-Harm Urges", "baseline": 61, "current": 47, "thresholds": 41 },
+                                    { "risk": "Substance Use", "baseline": 76, "current": 65, "thresholds": 41 },
+                                    { "risk": "Impulsivity", "baseline": 54, "current": 30, "thresholds": 41 },
+                                    { "risk": "Social Isolation", "baseline": 49, "current": 24, "thresholds": 41 },
+                                ]
+
+                                with mui.Card(key="risk_chart", sx={"p": 2, "my": 1, "bgcolor": "#FFFFFF"}):
+                                    nivo.Radar(
+                                        data=DATA,
+                                        keys=[ "baseline", "thresholds", "current" ],
+                                        indexBy="risk",
+                                        valueFormat=">-.2f",
+                                        margin={ "top": 70, "right": 80, "bottom": 40, "left": 80 },
+                                        borderColor={ "from": "color" },
+                                        gridLabelOffset=36,
+                                        dotSize=10,
+                                        dotColor={ "theme": "background" },
+                                        dotBorderWidth=2,
+                                        motionConfig="wobbly",
+                                        legends=[
+                                            {
+                                                "anchor": "top-left",
+                                                "direction": "column",
+                                                "translateX": -50,
+                                                "translateY": -40,
+                                                "itemWidth": 80,
+                                                "itemHeight": 20,
+                                                "itemTextColor": "#999",
+                                                "symbolSize": 12,
+                                                "symbolShape": "circle",
+                                                "effects": [
+                                                    {
+                                                        "on": "hover",
+                                                        "style": {
+                                                            "itemTextColor": "#000"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        theme={
+                                            "background": "#FFFFFF",
+                                            "textColor": "#31333F",
+                                            "tooltip": {
+                                                "container": {
+                                                    "background": "#FFFFFF",
+                                                    "color": "#31333F",
+                                                }
+                                            }
+                                        }
+                                    )
+
                             elif message["content"]["type"] == "tools_card":
                                 with mui.Card(key="tools_card", sx={"p": 2, "my": 1, "bgcolor": "#f5f5f5"}):
                                     mui.CardHeader(title="Recommended Tools")
@@ -745,6 +1006,60 @@ if st.session_state.openai_apikey:
                                             *[mui.ListItem(tool) for tool in st.session_state.client_data["tools"]],
                                             dense=True
                                         )
+                                    )
+
+                                DATA = [
+                                    { "activities": "CBT Exercises", "target": 53, "week1": 31, "week2": 41 },
+                                    { "activities": "Medication", "target": 51, "week1": 47, "week2": 51 },
+                                    { "activities": "Journaling", "target": 56, "week1": 25, "week2": 31 },
+                                    { "activities": "Sleep Routine", "target": 54, "week1": 30, "week2": 41 },
+                                    { "activities": "Session Attendance", "target": 59, "week1": 54, "week2": 41 },
+                                ]
+
+                                with mui.Card(key="adherence_chart", sx={"p": 2, "my": 1, "bgcolor": "#FEFBF5"}):
+                                    nivo.Radar(
+                                        data=DATA,
+                                        keys=[ "target", "week1", "week2" ],
+                                        indexBy="activities",
+                                        valueFormat=">-.2f",
+                                        margin={ "top": 70, "right": 80, "bottom": 40, "left": 80 },
+                                        borderColor={ "from": "color" },
+                                        gridLabelOffset=36,
+                                        dotSize=10,
+                                        dotColor={ "theme": "background" },
+                                        dotBorderWidth=2,
+                                        motionConfig="wobbly",
+                                        legends=[
+                                            {
+                                                "anchor": "top-left",
+                                                "direction": "column",
+                                                "translateX": -50,
+                                                "translateY": -40,
+                                                "itemWidth": 80,
+                                                "itemHeight": 20,
+                                                "itemTextColor": "#999",
+                                                "symbolSize": 12,
+                                                "symbolShape": "circle",
+                                                "effects": [
+                                                    {
+                                                        "on": "hover",
+                                                        "style": {
+                                                            "itemTextColor": "#000"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        theme={
+                                            "background": "#FEFBF5",
+                                            "textColor": "#31333F",
+                                            "tooltip": {
+                                                "container": {
+                                                    "background": "#FEFBF5",
+                                                    "color": "#31333F",
+                                                }
+                                            }
+                                        }
                                     )
 
                             elif message["content"]["type"] == "cbt_suggestions":
@@ -770,7 +1085,7 @@ if st.session_state.openai_apikey:
             st.session_state.treatment_chat.append({"role": "user", "content": prompt})
             
             response_map = {
-                "tools": {"type": "tools_card", "trigger": ["tool", "resource", "material"]},
+                "tools": {"type": "tools_card", "trigger": ["check-in", "tool", "resource", "material"]},
                 "cbt": {"type": "cbt_suggestions", "trigger": ["cbt", "technique", "exercise", "activity"]}
             }
 
@@ -783,7 +1098,7 @@ if st.session_state.openai_apikey:
                     response = {"type": config["type"]}
                     break
             
-            if any(w in prompt_lower for w in ["progress", "summary"]):
+            if any(w in prompt_lower for w in ["parent meeting", "progress", "summary"]):
                 response = {
                     "type": "progress_summary",
                     "data": {
@@ -792,7 +1107,7 @@ if st.session_state.openai_apikey:
                         "next_steps": st.session_state.latest_entry["next_steps"]
                     }
                 }
-            elif any(w in prompt_lower for w in ["risk", "urgent", "emergency"]):
+            elif any(w in prompt_lower for w in ["post-crisis", "risk", "urgent", "emergency"]):
                 response = {
                     "type": "risk_alert",
                     "data": {
