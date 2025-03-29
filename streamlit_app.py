@@ -782,8 +782,8 @@ if st.session_state.openai_apikey:
 
             # Row 3: Bottom cards          
             dashboard.Item("missed_activity_reasons", 0, 0, 4, 2.5),     # Progress card (left)
-            dashboard.Item("adherence_chart", 4, 0, 4.5, 2.5),     # Progress card (left)
-            dashboard.Item("auto_adjustments", 4, 2, 4.5, 2.5),     # Progress card (left)
+            dashboard.Item("adherence_chart", 4, 0, 5, 2.5),     # Progress card (left)
+            dashboard.Item("auto_adjustments", 4, 2, 5, 2.5),     # Progress card (left)
             dashboard.Item("next_steps", 0, 6, 4, 2.5),     # Progress card (left)
             
             dashboard.Item("cbt_suggestions", 0, 2, 4, 2),   # Wider CBT suggestions
