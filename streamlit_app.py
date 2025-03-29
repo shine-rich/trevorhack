@@ -5,6 +5,7 @@ import openai
 import time
 import helpers
 import emails
+import random
 import os
 from dotenv import load_dotenv
 
@@ -74,11 +75,45 @@ if "trigger_log" not in st.session_state:
                 "name": "5-4-3-2-1 Grounding",
                 "duration": "3 mins",
                 "instructions": "Name 5 things you see, 4 you can touch...",
-                "last_used": None
+                "last_used": None,
+                "helpful": None
             }
         ],
         "risk_level": "Medium"  # Dynamically updated from radar
     })
+
+if "missed_reasons" not in st.session_state:
+    st.session_state.update({
+        "missed_reasons": {},
+        "coping_strategies": [
+            {
+                "name": "5-Minute CBT",
+                "duration": "5 mins",
+                "instructions": "",
+                "last_used": None,
+                "helpful": None
+            }
+        ],
+        "adherence_data": {
+            "CBT": {"target": 5, "actual": 3},
+            "Medication": {"target": 7, "actual": 4}
+        }
+    })
+
+# In your session state initialization:
+if "current_case" not in st.session_state:
+    st.session_state.current_case = 0
+    st.session_state.case_queue = [
+        {
+            "id": 101,
+            "name": "Alex Chen",
+            "priority": "High",
+            "last_session": "2023-06-15",
+            "adherence_alerts": ["Journaling", "Medication"],
+            "suggestions": [...]  # Your auto-generated suggestions
+        },
+        # ...other cases
+    ]
 
 # Initialize session state for Case Form fields
 if 'case_form_data' not in st.session_state:
@@ -459,6 +494,28 @@ def flag_unhelpful_strategy(index):
     st.session_state.coping_strategies[index]["helpful"] = False
     st.rerun()
 
+def generate_adjustments(case_data):
+    suggestions = []
+    
+    # Rule 1: Missed activities
+    for activity in case_data["missed_activities"]:
+        if "Journaling" in activity:
+            suggestions.append({
+                "activity": "Journaling",
+                "recommendation": "Switch to bullet-point format",
+                "evidence": f"Missed {activity.split('(')[1]} in past week"
+            })
+    
+    # Rule 2: Low adherence + high risk
+    if case_data["adherence_rate"] < 0.7 and case_data["risk_level"] == "High":
+        suggestions.append({
+            "activity": "All",
+            "recommendation": "Simplify plan to 2-3 core activities",
+            "evidence": "High risk + low adherence"
+        })
+    
+    return suggestions
+
 if st.session_state.openai_apikey:
     search_tool = FunctionTool.from_defaults(fn=search_for_therapists)
     escalate_tool = FunctionTool.from_defaults(fn=escalate)
@@ -709,20 +766,25 @@ if st.session_state.openai_apikey:
         # Define a clean grid layout (x, y, width, height)
         layout = [
             # Row 1: Top-wide cards
+            dashboard.Item("case_recommendations", 0, 0, 4, 4),  # Wider progress summary
+            dashboard.Item("risk_alert", 4, 0, 4, 1),        # Risk alert (full width)
+
+            # Row 1: Top-wide cards
             dashboard.Item("progress_summary", 0, 0, 4, 2),  # Wider progress summary
             dashboard.Item("progress_chart", 4, 0, 4, 2),     # Progress card (left)
+            dashboard.Item("goal_timeline", 0, 2, 4, 2.5),     # Progress card (left)
 
             # Row 2: Middle components
-            dashboard.Item("risk_alert", 0, 0, 4, 1),        # Risk alert (full width)
-            dashboard.Item("risk_chart", 4, 0, 4, 2),     # Progress card (left)
-            dashboard.Item("trigger_log", 0, 2, 4, 2),   # Wider CBT suggestions
-            dashboard.Item("crisis_protocols", 4, 2, 4, 2),   # Wider CBT suggestions
-            dashboard.Item("coping_strategies", 0, 6, 4, 2),   # Wider CBT suggestions
+            dashboard.Item("risk_chart", 3.5, 0, 4, 2),     # Progress card (left)
+            dashboard.Item("trigger_log", 3.5, 2, 6, 2),   # Wider CBT suggestions
+            dashboard.Item("crisis_protocols", 0, 2, 3.5, 2),   # Wider CBT suggestions
+            dashboard.Item("coping_strategies", 0, 0, 3.5, 2),   # Wider CBT suggestions
 
             # Row 3: Bottom cards          
-            dashboard.Item("tools_card", 0, 3, 4, 2),     # Progress card (left)
-            dashboard.Item("adherence_chart", 4, 3, 4, 2),     # Progress card (left)
-
+            dashboard.Item("missed_activity_reasons", 0, 0, 4, 2.5),     # Progress card (left)
+            dashboard.Item("adherence_chart", 4, 0, 4.5, 2.5),     # Progress card (left)
+            dashboard.Item("auto_adjustments", 4, 2, 4.5, 2.5),     # Progress card (left)
+            dashboard.Item("next_steps", 0, 6, 4, 2.5),     # Progress card (left)
             
             dashboard.Item("cbt_suggestions", 0, 2, 4, 2),   # Wider CBT suggestions
         ]
@@ -737,8 +799,113 @@ if st.session_state.openai_apikey:
                     # Structured response with MUI components
                     with elements(f"response_{i}"):  # Unique key for each response
                         with dashboard.Grid(layout):
-                            if message["content"]["type"] == "progress_summary":
-                                with mui.Paper(key="progress_summary", elevation=3, sx={"p": 2, "my": 1, "borderLeft": "4px solid #1976d2", "bgcolor": "#FEFBF5"}):
+                            if message["content"]["type"] == "check-in":
+                                with mui.Card(key="case_recommendations", sx={"p": 2, "mb": 2, "borderLeft": "4px solid #2196F3"}):
+                                    with mui.CardHeader(
+                                        title="Next Case Recommendations",
+                                        avatar=mui.icon.Assignment(color="primary"),
+                                        action=mui.IconButton(mui.icon.Refresh)
+                                    ):
+                                        pass
+                                    
+                                    # Current case data (would come from your database)
+                                    case = {
+                                        "name": "Alex Chen",
+                                        "age": 17,
+                                        "goals": ["Reduce anxiety attacks", "Improve sleep routine"],
+                                        "adherence_rate": 0.65,  # 65%
+                                        "missed_activities": ["Journaling (3x)", "Medication (2x)"],
+                                        "risk_level": "Medium"
+                                    }
+                                    
+                                    with mui.CardContent():
+                                        # --- Student Summary Row ---
+                                        with mui.Stack(direction="row", spacing=2, alignItems="center", sx={"mb": 2}):
+                                            mui.Avatar("AC", sx={"bgcolor": "#1976D2"})
+                                            with mui.Box():
+                                                mui.Typography(case["name"], variant="h6")
+                                                mui.Typography(
+                                                    f"Age {case['age']} • {case['risk_level']} Risk • {int(case['adherence_rate']*100)}% Adherence",
+                                                    variant="body2",
+                                                    color="text.secondary"
+                                                )
+                                        
+                                        # --- Recommended Adjustments ---
+                                        mui.Divider(text="Suggested Adjustments", sx={"my": 2})
+                                        
+                                        adjustments = [
+                                            {
+                                                "activity": "Journaling",
+                                                "current": "Daily written entries",
+                                                "suggestion": "Switch to voice memos 3x/week",
+                                                "reason": "Missed 3x last week due to time constraints"
+                                            },
+                                            {
+                                                "activity": "CBT Exercises",
+                                                "current": "20-minute sessions",
+                                                "suggestion": "Try 5-minute 'micro-CBT' exercises",
+                                                "reason": "Low energy reported on weekdays"
+                                            }
+                                        ]
+                                        
+                                        for adj in adjustments:
+                                            with mui.Alert(
+                                                severity="info",
+                                                icon=mui.icon.LightbulbOutline(),
+                                                sx={"mb": 1, "alignItems": "flex-start"}
+                                            ):
+                                                with mui.Stack(spacing=0.5):
+                                                    mui.Typography(
+                                                        f"{adj['activity']}: {adj['suggestion']}",
+                                                        fontWeight="bold"
+                                                    )
+                                                    mui.Typography(
+                                                        f"Instead of {adj['current']} • {adj['reason']}",
+                                                        variant="body2"
+                                                    )
+                                                    with mui.Stack(direction="row", spacing=1, sx={"mt": 1}):
+                                                        mui.Button(
+                                                            "Apply This",
+                                                            size="small",
+                                                            variant="outlined",
+                                                            startIcon=mui.icon.Check()
+                                                        )
+                                                        mui.Button(
+                                                            "See Alternatives",
+                                                            size="small",
+                                                            startIcon=mui.icon.Search()
+                                                        )
+                                        
+                                        # --- Quick Actions ---
+                                        mui.Divider(text="Quick Actions", sx={"my": 2})
+                                        with mui.Stack(direction="row", spacing=1):
+                                            mui.Button(
+                                                "View Full Case",
+                                                variant="outlined",
+                                                startIcon=mui.icon.FolderOpen()
+                                            )
+                                            mui.Button(
+                                                "Start Session Notes",
+                                                variant="contained",
+                                                startIcon=mui.icon.Edit()
+                                            )
+
+                                # Risk Alert (Middle, full width)
+                                with mui.Paper(
+                                    key="risk_alert",
+                                    sx={
+                                        "mb": 2,
+                                        "borderLeft": "4px solid #ff9800",
+                                        "bgcolor": "#fff3e0",
+                                        "p": 2,
+                                        "height": "100%",
+                                    }
+                                ):
+                                    mui.Typography("Risk Level: Medium", variant="h6")
+                                    mui.Typography("Monitor for increased hopelessness per last session.")
+
+                            elif message["content"]["type"] == "progress_summary":
+                                with mui.Paper(key="progress_summary", elevation=3, sx={"p": 2, "my": 1, "borderLeft": "4px solid #1976d2"}):
                                     mui.Typography("Treatment Progress", variant="h6")
                                     mui.Divider()
                                     mui.Typography(f"Last Session: {message['content']['data']['progress']}")                                    
@@ -808,21 +975,47 @@ if st.session_state.openai_apikey:
                                         }
                                     )
 
-                            elif message["content"]["type"] == "risk_alert":
-                                # Risk Alert (Middle, full width)
-                                with mui.Paper(
-                                    key="risk_alert",
-                                    sx={
-                                        "mb": 2,
-                                        "borderLeft": "4px solid #ff9800",
-                                        "bgcolor": "#fff3e0",
-                                        "p": 2,
-                                        "height": "100%",
-                                    }
-                                ):
-                                    mui.Typography("Risk Level: Medium", variant="h6")
-                                    mui.Typography("Monitor for increased hopelessness per last session.")
+                                with mui.Card(key="goal_timeline", sx={"p": 2, "mt": 2}):
+                                    with mui.CardHeader(
+                                        title="Goal Progress Timeline",
+                                        avatar=mui.icon.Timeline()
+                                    ):
+                                        pass
+                                    
+                                    with mui.CardContent():
+                                        with mui.List():
+                                            milestones = [
+                                                {"date": "Jun 5", "goal": "Start CBT", "status": "completed"},
+                                                {"date": "Jun 12", "goal": "Reduce anxiety attacks", "status": "in-progress"},
+                                                {"date": "Jun 20", "goal": "Establish sleep routine", "status": "pending"}
+                                            ]
+                                            
+                                            for milestone in milestones:
+                                                with mui.ListItem(key=milestone["date"], sx={"py": 1}):
+                                                    mui.ListItemAvatar(
+                                                        mui.Avatar(
+                                                            mui.icon.Check() if milestone["status"] == "completed" else 
+                                                            mui.icon.AccessTime() if milestone["status"] == "in-progress" else 
+                                                            mui.icon.Event()
+                                                        )
+                                                    )
+                                                    with mui.ListItemText(
+                                                        primary=milestone["goal"],
+                                                        secondary=milestone["date"],
+                                                        sx={"color": "text.primary" if milestone["status"] == "in-progress" else "text.secondary"}
+                                                    ):
+                                                        pass
+                                                    mui.Chip(
+                                                        label=milestone["status"].replace("-", " ").title(),
+                                                        size="small",
+                                                        color={
+                                                            "completed": "success",
+                                                            "in-progress": "warning",
+                                                            "pending": "default"
+                                                        }[milestone["status"]]
+                                                    )
 
+                            elif message["content"]["type"] == "risk_analysis":
                                 with mui.Card(key="trigger_log", sx={"p": 2, "mt": 2, "borderLeft": "4px solid #ff5722"}):
                                     with mui.CardHeader(title="Trigger Log", avatar=mui.icon.Warning(color="error")):
                                         mui.Typography("Recent risk triggers", variant="body2", color="text.secondary")
@@ -873,7 +1066,7 @@ if st.session_state.openai_apikey:
                                                                     })
                                                                 )
 
-                                with mui.Card(key="crisis_protocols", sx={"p": 2, "mt": 2, "bgcolor": "#fff8e1"}):
+                                with mui.Card(key="crisis_protocols", sx={"p": 2, "mt": 2}):
                                     with mui.CardHeader(
                                         title="Crisis Protocols",
                                         avatar=mui.icon.Emergency(color="warning"),
@@ -951,7 +1144,7 @@ if st.session_state.openai_apikey:
                                     { "risk": "Social Isolation", "baseline": 49, "current": 24, "thresholds": 41 },
                                 ]
 
-                                with mui.Card(key="risk_chart", sx={"p": 2, "my": 1, "bgcolor": "#FFFFFF"}):
+                                with mui.Card(key="risk_chart", sx={"p": 2, "my": 1, "bgcolor": "#FEFBF5"}):
                                     nivo.Radar(
                                         data=DATA,
                                         keys=[ "baseline", "thresholds", "current" ],
@@ -986,11 +1179,11 @@ if st.session_state.openai_apikey:
                                             }
                                         ],
                                         theme={
-                                            "background": "#FFFFFF",
+                                            "background": "#FEFBF5",
                                             "textColor": "#31333F",
                                             "tooltip": {
                                                 "container": {
-                                                    "background": "#FFFFFF",
+                                                    "background": "#FEFBF5",
                                                     "color": "#31333F",
                                                 }
                                             }
@@ -998,15 +1191,87 @@ if st.session_state.openai_apikey:
                                     )
 
                             elif message["content"]["type"] == "tools_card":
-                                with mui.Card(key="tools_card", sx={"p": 2, "my": 1, "bgcolor": "#f5f5f5"}):
-                                    mui.CardHeader(title="Recommended Tools")
-                                    mui.Divider()
-                                    mui.CardContent(
-                                        mui.List(
-                                            *[mui.ListItem(tool) for tool in st.session_state.client_data["tools"]],
-                                            dense=True
-                                        )
-                                    )
+                                with mui.Card(key="missed_activity_reasons", sx={"p": 2, "mt": 2, "borderLeft": "4px solid #ff9800"}):
+                                    with mui.CardHeader(
+                                        title="Missed Activity Analysis",
+                                        avatar=mui.icon.Quiz(color="warning")
+                                    ):
+                                        mui.Typography("Last 30 days", variant="body2", color="text.secondary")
+                                    
+                                    with mui.CardContent():
+                                        with mui.List(dense=True):
+                                            for activity in ["CBT Exercises", "Journaling", "Medication"]:
+                                                with mui.ListItem(key=activity):
+                                                    with mui.ListItemText(
+                                                        primary=activity,
+                                                        secondary=f"Missed {random.randint(1,5)} times"
+                                                    ):
+                                                        pass
+                                                    with mui.TextField(
+                                                        size="small",
+                                                        placeholder="Reason...",
+                                                        sx={"width": "200px"},
+                                                        onChange=lambda e, a=activity: (
+                                                            st.session_state.missed_reasons.update({a: e.target.value}),
+                                                            st.rerun()
+                                                        )
+                                                    ):
+                                                        pass
+
+                                with mui.Card(key="auto_adjustments", sx={"p": 2, "mt": 2, "bgcolor": "#e8f5e9"}):
+                                    with mui.CardHeader(
+                                        title="Recommended Adjustments",
+                                        action=mui.IconButton(mui.icon.AutoAwesome)
+                                    ):
+                                        pass
+                                    
+                                    with mui.CardContent():
+                                        suggestions = {
+                                            "CBT Exercises": "Try shorter 5-minute versions",
+                                            "Journaling": "Switch to voice memos on busy days",
+                                            "Medication": "Set phone reminders at 8AM/8PM"
+                                        }
+                                        
+                                        for activity, suggestion in suggestions.items():
+                                            with mui.Alert(
+                                                severity="info",
+                                                sx={"mb": 1},
+                                                action=mui.Button("Apply", size="small")
+                                            ):
+                                                mui.Typography(f"{activity}: {suggestion}", variant="body2")
+
+                                with mui.Card(key="next_steps", sx={"p": 2, "mt": 2, "borderLeft": "4px solid #1976d2"}):
+                                    with mui.CardHeader(
+                                        title="Immediate Next Steps",
+                                        subheader="Based on adherence trends"
+                                    ):
+                                        pass
+                                    
+                                    with mui.CardContent():
+                                        with mui.List(dense=False):
+                                            steps = [
+                                                ("Schedule medication review", "high-priority", mui.icon.Warning),
+                                                ("Download CBT mobile app", "medium-priority", mui.icon.PhoneIphone),
+                                                ("Journal prompt worksheets", "low-priority", mui.icon.Description)
+                                            ]
+                                            
+                                            for text, priority, icon in steps:
+                                                with mui.ListItem(key=text, secondaryAction=mui.Checkbox(edge="end")):
+                                                    mui.ListItemAvatar(icon())
+                                                    with mui.ListItemText(
+                                                        primary=text,
+                                                        secondary=priority.replace("-", " ").title(),
+                                                        sx={
+                                                            "& .MuiListItemText-secondary": {
+                                                                "color": {
+                                                                    "high-priority": "#f44336",
+                                                                    "medium-priority": "#ff9800",
+                                                                    "low-priority": "#4caf50"
+                                                                }[priority]
+                                                            }
+                                                        }
+                                                    ):
+                                                        pass
 
                                 DATA = [
                                     { "activities": "CBT Exercises", "target": 53, "week1": 31, "week2": 41 },
@@ -1085,7 +1350,8 @@ if st.session_state.openai_apikey:
             st.session_state.treatment_chat.append({"role": "user", "content": prompt})
             
             response_map = {
-                "tools": {"type": "tools_card", "trigger": ["check-in", "tool", "resource", "material"]},
+                "check-in": {"type": "check-in", "trigger": ["check-in", "checking-in"]},
+                "tools": {"type": "tools_card", "trigger": ["tool", "recommend", "material"]},
                 "cbt": {"type": "cbt_suggestions", "trigger": ["cbt", "technique", "exercise", "activity"]}
             }
 
@@ -1098,7 +1364,7 @@ if st.session_state.openai_apikey:
                     response = {"type": config["type"]}
                     break
             
-            if any(w in prompt_lower for w in ["parent meeting", "progress", "summary"]):
+            if any(w in prompt_lower for w in ["full case", "progress", "summary"]):
                 response = {
                     "type": "progress_summary",
                     "data": {
@@ -1107,9 +1373,9 @@ if st.session_state.openai_apikey:
                         "next_steps": st.session_state.latest_entry["next_steps"]
                     }
                 }
-            elif any(w in prompt_lower for w in ["post-crisis", "risk", "urgent", "emergency"]):
+            elif any(w in prompt_lower for w in ["risk", "urgent", "emergency"]):
                 response = {
-                    "type": "risk_alert",
+                    "type": "risk_analysis",
                     "data": {
                         "level": st.session_state.latest_entry["risk_level"],
                         "notes": st.session_state.latest_entry["risk_notes"]
