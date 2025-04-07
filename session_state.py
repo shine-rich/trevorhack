@@ -41,7 +41,7 @@ def init_defaults() -> None:
     core_defaults = {
         "should_suggest_reply_using_ai": False,
         "messages": [],
-        "api_key": st.secrets.get("openai_key", ""),
+        "api_key": "sk-no-key-required",
         "dark_mode": False,
         "model_settings": {},
         "script_idx": 1,
