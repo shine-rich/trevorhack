@@ -1,79 +1,27 @@
-import streamlit as st
-import uuid
-import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
-from threading import Thread
-
+import uuid
+import requests
 from llama_index.llms.openai_like import OpenAILike
 
-API_ENDPOINT = "http://localhost:8000/api/v1/anonymized-support"
-
-# Initialize FastAPI app
-app = FastAPI()
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins (for development only; restrict in production)
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
-)
+# Replace Streamlit session state with a global variable
+api_data = None
+session_id = str(uuid.uuid4())
 
 # Pydantic model for request body
 class UserInputRequest(BaseModel):
     user_input: str
     user_id: str  # Add user_id to the request model
 
-# Simulate API request to fetch anonymized data
 def fetch_anonymized_data(session_id: str):
-    # Mock API request (replace with actual API call)
     response = requests.post(
-        API_ENDPOINT,
+        "http://localhost:8000/api/v1/anonymized-support",
         json={"session_id": session_id},
         headers={"Authorization": "Bearer your-secure-oauth2-token"}
     )
-    if response.status_code == 200:
-        return response.json()
-    else:
-        st.error("Failed to fetch data from the API.")
-        return None
-
-def search_for_therapists(locality: str = "Houston, Texas") -> str:
-    pass
-    # """Use the Google Search Tool but only specifically to find therapists in the client's area, then send email to update the client with the results."""
-    # google_spec = GoogleSearchToolSpec(key=st.secrets.google_search_api_key, engine=st.secrets.google_search_engine)
-    # tools = LoadAndSearchToolSpec.from_defaults(google_spec.to_tool_list()[0],).to_tool_list()
-    # agent = OpenAIAgent.from_tools(tools, verbose=True)
-    # response = agent.chat(f"what are the names of three individual therapists in {locality}?")
-    # message = emails.html(
-    #     html=f"<p>Hi Riley.<br>{response}</p>",
-    #     subject="Helpful resources from TrevorChat",
-    #     mail_from=('TrevorChat Counselor', 'contact@mychesscamp.com')
-    # )
-    # smtp_options = {
-    #     "host": "smtp.gmail.com", 
-    #     "port": 587,
-    #     "user": "example@example.com", # To replace
-    #     "password": "mypassword", # To replace   
-    #     "tls": True
-    # }
-    # response = message.send(to='contact.email@gmail.com', smtp=smtp_options) # To replace with client's email
-    # return f"Message sent: {response.success}"
-
-def escalate() -> None:
-    """Recognizes a high-risk statement from the mental health chatbot and escalates to the next level of management. High-risk is defined as a statement that suggests that the client has a plan, means, and intent to harm oneself or others (specific details on when, where, and how)."""
-    st.error("High risk detected. Please consider escalating immediately.", icon="🚨")
-
-def get_resource_for_response(user_input) -> str:
-    """Recognizes a no, low- or medium-risk statement from the mental health chatbot, seeks resources to inform potential chat responses"""
-    response = st.session_state.query_engine.retrieve(user_input)
-    resources = [t.node.metadata["file_name"] for t in response]
-    content = [t.node.text for t in response]
-    result = dict(zip(resources, content))
-    return result
+    return response.json() if response.status_code == 200 else None
 
 def get_llm():
     return OpenAILike(
@@ -98,9 +46,9 @@ def get_llm():
 
 def get_modified_prompt(user_input) -> str:
     # Retrieve treatment plan components from session state
-    anonymized_goals = st.session_state.api_data.get("anonymized_goals", [])
-    anonymized_coping_strategies = st.session_state.api_data.get("anonymized_coping_strategies", [])
-    actionable_insights = st.session_state.api_data.get("actionable_insights", "")
+    anonymized_goals = api_data.get("anonymized_goals", [])
+    anonymized_coping_strategies = api_data.get("anonymized_coping_strategies", [])
+    actionable_insights = api_data.get("actionable_insights", "")
 
     # Convert treatment plan components into a structured prompt
     treatment_plan_prompt = f"""
@@ -150,28 +98,24 @@ def process_form_field(llm, prompt):
     response = llm.complete(prompt).text
     return clean_response(response)
 
-# Initialize session state for conversation history and API data
-if "api_data" not in st.session_state:
-    st.session_state.api_data = None
-
-if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())  # Generate a unique session ID
-
-if st.session_state.api_data is None:
-    # Fetch anonymized data from the API
-    st.session_state.api_data = fetch_anonymized_data(st.session_state.session_id)
-
-if st.session_state.api_data:
-    # Use anonymized data to drive the conversation
-    anonymized_goals = st.session_state.api_data.get("anonymized_goals", [])
-    anonymized_coping_strategies = st.session_state.api_data.get("anonymized_coping_strategies", [])
-    actionable_insights = st.session_state.api_data.get("actionable_insights", "")
+# Initialize FastAPI and LLM as before (omitting Streamlit-dependent functions)
+app = FastAPI()
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins (for development only; restrict in production)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
 llm = get_llm()
 
-# FastAPI Endpoint
 @app.post("/chat")
 def chat(request: UserInputRequest):
+    global api_data
+    if api_data is None:
+        api_data = fetch_anonymized_data(session_id)
     try:
         # Check if the user_id matches the allowed value
         if request.user_id != "tGcsMce6an1Hl4GtW0lQOQiOMyCFGD3v":
